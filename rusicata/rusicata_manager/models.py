@@ -5,32 +5,44 @@ import os
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 import re
-BASE_PATH = '/tmp/'
+import yaml
+import subprocess
 
-
+RULES_BASE_PATH = '/tmp/'
+CONFIG_BASE_PATH = '.'
 
 def suricata_hot_reload():
-    pass
+    subprocess.run('kill -usr2 $(pidof suricata)',shell=True,text=True)
+
+def suricata_deamon_reload():
+    subprocess.run(['systemctl','restart','suricata.service'])
+
+def load_suricata_config(name: str):
+    file_path = f'{CONFIG_BASE_PATH}/{name}'
+    return yaml.safe_load(open(file_path, 'r'))
+
+def dump_suricata_config(data, name: str):
+    file_path = f'{CONFIG_BASE_PATH}/{name}'
+    yaml.dump(data,open(file_path,'w'))
 
 # alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; content:"pruppetta"; http_uri; sid:1000001; rev:1;)
 def rulify(http_rule_instance) -> str:
     return f'{http_rule_instance.action} {http_rule_instance.protocol} any any -> any {http_rule_instance.service.port} (msg:"{http_rule_instance.message}";flow:to_server,established; content:"{http_rule_instance.request_method}";http_method; content:"{http_rule_instance.content}";{http_rule_instance.content_location};{"" if http_rule_instance.case_sensitive else "nocase;"}sid:{http_rule_instance.sid};rev:1;)\n'
 
 def remove_rule(http_rule_instance):
-    file_path = f'{BASE_PATH}{http_rule_instance.service.name}.rules'
+    file_path = f'{RULES_BASE_PATH}{http_rule_instance.service.name}.rules'
     # Read file and filter lines
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
     filtered_lines = [line for line in lines if f'sid:{http_rule_instance.sid};' not in line]
-    print(filtered_lines)    
     # Write filtered lines back to the file
     with open(file_path, 'w') as file:
         file.writelines(filtered_lines)
     suricata_hot_reload()
 
 def insert_rule(http_rule_instance):
-    file_path = f'{BASE_PATH}{http_rule_instance.service.name}.rules'
+    file_path = f'{RULES_BASE_PATH}{http_rule_instance.service.name}.rules'
     # Check if the file exists
     if not os.path.exists(file_path):
         # Create the file if it does not exist
@@ -50,9 +62,24 @@ class Service(models.Model):
     def __str__(self):
         return self.name
     
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Check if the instance is being created (not updated)
+            #Create a rule file
+            file_path = RULES_BASE_PATH + self.name + '.rules'
+            with open(file_path,'w') as f:
+                f.write('')
+            #Load it inside yaml
+            loaded_config = load_suricata_config('suricata.yaml')
+            loaded_config['rule-files'].append(self.name+'.rules')
+            #Restart suricata to load new config
+            suricata_deamon_reload()
+            #Dump updated suricata.yaml
+            dump_suricata_config(loaded_config,'suricata.yaml')
+
+        # Call the original save method to save the changes to the database
+        super().save(*args, **kwargs)
 
 
-#A rule has ???
 # alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; content:"pruppetta"; http_uri; sid:1000001; rev:1;)
 # alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; content:"pruppetta"; http_uri; nocase; sid:1000001; rev:1;)
 # alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; pcre:"/(pruppetta)/i"; http_uri; sid:1000001; rev:1;)
@@ -117,10 +144,5 @@ def pre_delete_callback(sender, instance, using, **kwargs):
     # Custom logic before deletion
     print(f"Deleting instance with id {instance.sid}")
     remove_rule(instance)
-"""
-    # Optionally perform additional actions here
-    instance.remove_rules()  # Call the remove_rules method if it exists in your model
-
-    # Note: No additional positional arguments should be defined in the handler func"""
 
 
