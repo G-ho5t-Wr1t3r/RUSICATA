@@ -8,8 +8,9 @@ import re
 import yaml
 import subprocess
 
-RULES_BASE_PATH = '/tmp/'
-CONFIG_BASE_PATH = '.'
+RULES_BASE_PATH = '/var/lib/suricata/rules/'
+CONFIG_BASE_PATH = '/etc/suricata/'
+SURICATA_YAML_HEADER = '%YAML 1.1\n---\n'
 
 def suricata_hot_reload():
     subprocess.run('kill -usr2 $(pidof suricata)',shell=True,text=True)
@@ -23,7 +24,10 @@ def load_suricata_config(name: str):
 
 def dump_suricata_config(data, name: str):
     file_path = f'{CONFIG_BASE_PATH}/{name}'
-    yaml.dump(data,open(file_path,'w'))
+    #yaml.dump(data,open(file_path,'w'))
+    with open(file_path, 'w') as f:
+        f.write(SURICATA_YAML_HEADER)
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
 
 # alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; content:"pruppetta"; http_uri; sid:1000001; rev:1;)
 def rulify(http_rule_instance) -> str:
@@ -68,11 +72,14 @@ class Service(models.Model):
             file_path = RULES_BASE_PATH + self.name + '.rules'
             with open(file_path,'w') as f:
                 f.write('')
+            
             #Load it inside yaml
             loaded_config = load_suricata_config('suricata.yaml')
             loaded_config['rule-files'].append(self.name+'.rules')
+            
             #Restart suricata to load new config
             suricata_deamon_reload()
+            
             #Dump updated suricata.yaml
             dump_suricata_config(loaded_config,'suricata.yaml')
 

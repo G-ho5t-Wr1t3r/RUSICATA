@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-j2rn%-5@@7^+$)j^#(=xpr+#yl!l^-8vgx!%8fw8%9j^f!b_!t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+TEAM_ALLOWED_IPS = ['127.0.0.1', '10.81.21.20', '10.81.21.11']
 
 
 # Application definition
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'rusicata_manager.middleware.TeamIPWhitelistMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

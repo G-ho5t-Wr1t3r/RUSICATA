@@ -1,8 +1,10 @@
+%YAML 1.1
+---
 af-packet:
 - cluster-id: 99
   cluster-type: cluster_flow
   defrag: true
-  interface: enp0s3
+  interface: enp0s3 # Interface to capture on, change it!
 - interface: default
 af-xdp:
 - interface: default
@@ -295,7 +297,9 @@ nflog:
   max-size: 20000
   qthreshold: 1
   qtimeout: 100
-nfq: null
+nfq:
+  mode: accept
+  fail-open: yes
 outputs:
 - fast:
     append: true
