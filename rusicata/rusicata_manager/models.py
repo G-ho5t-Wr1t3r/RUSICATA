@@ -12,6 +12,9 @@ RULES_BASE_PATH = '/var/lib/suricata/rules/'
 CONFIG_BASE_PATH = '/etc/suricata/'
 SURICATA_YAML_HEADER = '%YAML 1.1\n---\n'
 
+# ==========================================================================================================================
+# SURICATA INTERACTION CORE FUNCTIONS 
+
 def suricata_hot_reload():
     subprocess.run('kill -usr2 $(pidof suricata)',shell=True,text=True)
 
@@ -34,6 +37,9 @@ def rulify(http_rule_instance) -> str:
     return f'{http_rule_instance.action} {http_rule_instance.protocol} any any -> any {http_rule_instance.service.port} (msg:"{http_rule_instance.message}";flow:to_server,established; content:"{http_rule_instance.request_method}";http_method; content:"{http_rule_instance.content}";{http_rule_instance.content_location};{"" if http_rule_instance.case_sensitive else "nocase;"}sid:{http_rule_instance.sid};rev:1;)\n'
 
 def remove_rule(http_rule_instance):
+    '''
+    param: http_rule_instance (see HttpRule model)
+    '''
     file_path = f'{RULES_BASE_PATH}{http_rule_instance.service.name}.rules'
     # Read file and filter lines
     with open(file_path, 'r') as file:
@@ -57,6 +63,7 @@ def insert_rule(http_rule_instance):
         f.write(rulify(http_rule_instance))
     suricata_hot_reload()
 
+# ==========================================================================================================================
 
 #A service has a port, a name and a list of rules associated
 class Service(models.Model):
@@ -142,14 +149,14 @@ class HttpRule(models.Model):
     def __str__(self):
         return f'{self.service.name}: {self.action} : {self.request_method} : {self.content_location} : {self.content}'
 
-
-
-
-
 @receiver(pre_delete, sender=HttpRule)
 def pre_delete_callback(sender, instance, using, **kwargs):
-    # Custom logic before deletion
+    '''
+    This is a signal receiver integrated in Django.
+    Why? It makes possible to execute some custom logic before removing a rule.
+    Clean the file system removing fisically the Suricata rule from .rules file.
+    Runs automatically in a transparent way before deleting HttpRule model from the db. 
+    With the @receiver(pre_delete, sender=HttpRule) decorator, Django auto-invoke for every deleting action on that model.
+    '''
     print(f"Deleting instance with id {instance.sid}")
     remove_rule(instance)
-
-
