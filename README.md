@@ -28,7 +28,9 @@ tar xzf rusicata.tar.gz
 cd rusicata
 python3 -m venv env
 source env/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt # A volte non funziona: PEP 668 
+# Se non funziona usare il seguente comando
+pip install -r requirements.txt --break-system-packages
 ```
 
 ## Configurazione di Rusicata
@@ -62,6 +64,16 @@ suricata --build-info
 # N.B.: ora l'interfaccia di rete è settata su 'game' che va bene per le simulazioni
 
 mv /var/lib/suricata/rules/suricata.rules /var/lib/suricata/rules/suricata.rules.old
+touch /var/lib/suricata/rules/suricata.rules #NUOVO FILE
+
+sudo suricata -T -c /etc/suricata/suricata.yaml -v #per testare se tutto ok
+```
+
+ATTENZIONE: 
+In alcuni casi la catella `/var/lib/suricata/rules/suricata.rules` non è presente, come nella simulazione fatta su una ubuntu server stock.
+I passi che ho seguito sono i seguenti:
+```bash
+mkdir -p /var/lib/suricata/rules
 touch /var/lib/suricata/rules/suricata.rules #NUOVO FILE
 
 sudo suricata -T -c /etc/suricata/suricata.yaml -v #per testare se tutto ok
