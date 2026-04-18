@@ -7,6 +7,7 @@ class TeamIPWhitelistMiddleware:
 
     def __call__(self, request):
         ip = request.META.get('REMOTE_ADDR')
+        if settings.DEBUG: print(f'REQUEST IP: {ip}')
         if ip not in settings.TEAM_ALLOWED_IPS:
             return HttpResponseForbidden('Accesso negato - solo membri del team')
         return self.get_response(request)

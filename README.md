@@ -41,11 +41,9 @@ Modficare nel file [settings.py](http://settings.py) la lista di IP che possono 
 ALLOWED_HOSTS = ['*']
 TEAM_ALLOWED_IPS = ['127.0.0.1', 'IP_player1', ... , 'IP_player6']
 ```
-OPZIONALE: creare un superuser
 
 ```bash
 python3 manage.py createsuperuser # imposta username e password
-# NOTA: root root esiste già
 ```
  
 # SURICATA
@@ -79,7 +77,7 @@ touch /var/lib/suricata/rules/suricata.rules #NUOVO FILE
 sudo suricata -T -c /etc/suricata/suricata.yaml -v #per testare se tutto ok
 ```
 
-1. Aggiungi le regole di firewall per eseguire suricata sulla game_vm in **modalità IPS**
+2. Aggiungi le regole di firewall per eseguire suricata sulla game_vm in **modalità IPS**
 
 ```bash
 # Se i servizi sono solo basati su docker basta usare SOLO QUESTA REGOLA di firewall
@@ -91,16 +89,20 @@ iptables -I INPUT -j NFQUEUE --queue-num 0 --queue-bypass
 iptables -I OUTPUT -j NFQUEUE --queue-num 0 --queue-bypass
 ```
 
-1. Modificare il `suricata.service` per avviarlo — in automatico in modalità IPS — da rusicata **quando si crea un nuovo servizio**
+3. Modificare il `suricata.service` per avviarlo — in automatico in modalità IPS — da rusicata **quando si crea un nuovo servizio**
 
 ```bash
 sudo nano /usr/lib/systemd/system/suricata.service
 ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -q 0 -D # modalità IPS
 
 # N.B.: controllare il path del binario di suricata (se non dovesse essere in /usr/bin)
+
+sudo systemctl daemon-reload
+sudo systemctl enable suricata
+sudo systemctl start suricata
 ```
 
-1. Avvia **rusicata** (frontend per suricata) e creare un **servizio per ogni challenge**
+4. Avvia **rusicata** (frontend per suricata) e creare un **servizio per ogni challenge**
 
 ```bash
 cd rusicata
