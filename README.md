@@ -113,3 +113,6 @@ http://IP_VM:8000/admin #inserisci username e password
 
 Le regole create con rusicata si trovano in `/var/lib/suricata/rules/`
 Per vedere i log in real-time si può consultare il file `fast.log`
+
+# TODO 
+- [ ] Integrare discovery service con il configuraton.py che ha scritto DOME

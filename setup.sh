@@ -22,7 +22,7 @@ if [ -f "rusicata.tar.gz" ]; then
     rm rusicata.tar.gz
 fi
 
-cd rusicata
+cd RUSICATA
 
 # Creazione ambiente virtuale
 python3 -m venv .env
@@ -58,7 +58,7 @@ fi
 export DJANGO_SUPERUSER_PASSWORD="root"
 export DJANGO_SUPERUSER_USERNAME="root"
 export DJANGO_SUPERUSER_EMAIL="admin@example.com"
-python3 manage.py createsuperuser --no-input
+python3 rusicata_master/manage.py createsuperuser --no-input
 
 sudo add-apt-repository ppa:oisf/suricata-stable
 sudo apt update
