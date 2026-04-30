@@ -114,5 +114,12 @@ http://IP_VM:8000/admin #inserisci username e password
 Le regole create con rusicata si trovano in `/var/lib/suricata/rules/`
 Per vedere i log in real-time si può consultare il file `fast.log`
 
+## Dove vengono salvate le regole?
+Le regole vengono salvate in 
+```
+/var/lib/suricata/rules/NAME.rule
+```
+
 # TODO 
 - [ ] Integrare discovery service con il configuraton.py che ha scritto DOME
+- [ ] Runnare Rusicata sul proxy per la decodifica

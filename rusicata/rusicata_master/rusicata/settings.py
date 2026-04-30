@@ -24,7 +24,6 @@ SECRET_KEY = 'django-insecure-j2rn%-5@@7^+$)j^#(=xpr+#yl!l^-8vgx!%8fw8%9j^f!b_!t
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-SIMULATION = True
 
 # ============================
 # MODIFY THIS:
@@ -37,10 +36,7 @@ PLAYER_6 = '0.0.0.0'
 # ============================
 
 ALLOWED_HOSTS = ['*']
-if not SIMULATION:
-    TEAM_ALLOWED_IPS = ['127.0.0.1', PLAYER_1, PLAYER_2, PLAYER_3, PLAYER_4, PLAYER_5, PLAYER_6]
-else:
-    TEAM_ALLOWED_IPS = ['127.0.0.1', '10.80.253.253'] #TODO Momentaneo come ip, abbiamo notato che in simulazione non va a causa di tailscale
+TEAM_ALLOWED_IPS = ['127.0.0.1', PLAYER_1, PLAYER_2, PLAYER_3, PLAYER_4, PLAYER_5, PLAYER_6]
 
 
 # Application definition

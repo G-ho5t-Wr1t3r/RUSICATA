@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # Setup per automatizzare il deploy e la run di rusicata.
 
 # COLORI
@@ -50,24 +51,20 @@ else
     fi
 fi
 
-SETTINGS_FILE=$(find . -name "settings.py" | head -n 1)
-sed -i "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['*']/g" "$SETTINGS_FILE"
-grep -q "TEAM_ALLOWED_IPS" "$SETTINGS_FILE" || echo "TEAM_ALLOWED_IPS = ['127.0.0.1']" >> "$SETTINGS_FILE"
+# TODO -> Implementare la parte riguardante la modifica del file settings per impostare i giocatori consentiti
 
 # SETTING DJANGO SUPERUSER
 export DJANGO_SUPERUSER_PASSWORD="root"
 export DJANGO_SUPERUSER_USERNAME="root"
 export DJANGO_SUPERUSER_EMAIL="admin@example.com"
-python3 rusicata_master/manage.py makemigrations
-python3 rusicata_master/manage.py migrate
 python3 rusicata_master/manage.py createsuperuser --no-input
 
-sudo add-apt-repository ppa:oisf/suricata-stable -y
+sudo add-apt-repository ppa:oisf/suricata-stable
 sudo apt update
 sudo apt install suricata jq -y
 suricata --build-info
 
-if find var/lib/suricata/rules > /dev/null 2>&1; then
+if find var/lib/suricata/rules; then
     echo -e "${YLW}Eseguo il backup delle regole esistenti in /var/lib/suricata/rules/suricata.rules.old${RST}"
     mv /var/lib/suricata/rules/suricata.rules /var/lib/suricata/rules/suricata.rules.old
 else
@@ -75,11 +72,8 @@ else
     mkdir -p /var/lib/suricata/rules
 fi
 touch /var/lib/suricata/rules/suricata.rules
-
-cp rusicata_master/suricata.yaml /etc/suricata/suricata.yaml || true
-
 echo "${YLW}Lancio il test per suricata.yaml${RST}"
-sudo suricata -T -c /etc/suricata/suricata.yaml -v
+echo $(sudo suricata -T -c /etc/suricata/suricata.yaml -v)
 
 echo "Imposto i parametri di IPTABLES..."
 if iptables -I DOCKER-USER -j NFQUEUE --queue-num 0 --queue-bypass; then
@@ -106,10 +100,10 @@ else
     echo "${RED}Output ✗${RST}"
 fi
 
-sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -q 0 -D|' /usr/lib/systemd/system/suricata.service
+# TODO Suicata service
 
 sudo systemctl daemon-reload
 sudo systemctl enable suricata
 sudo systemctl start suricata
 
-nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > /dev/null 2>&1 &
+# TODO start website

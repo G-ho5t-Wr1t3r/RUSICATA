@@ -67,8 +67,8 @@ def insert_rule(http_rule_instance):
 
 #A service has a port, a name and a list of rules associated
 class Service(models.Model):
-    name = models.CharField(max_length=200)
-    port = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(65535)])
+    name = models.CharField(max_length=200, help_text="Nome del Service")
+    port = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(65535)], help_text="Porta su cui runna (non interna di docker)")
 
     def __str__(self):
         return self.name
@@ -118,15 +118,15 @@ class HttpRule(models.Model):
         "http_client_body":"http_client_body",
         "http_header":"http_header"
     }
-    service =  models.ForeignKey(Service, on_delete=models.CASCADE)
+    service =  models.ForeignKey(Service, on_delete=models.CASCADE, help_text="Servizio sul quale applicare la regola.")
     sid = models.IntegerField()
-    protocol = models.CharField(max_length=10,choices={'http':'http'})
-    action = models.CharField(max_length=10, choices=ACTIONS)
-    message = models.CharField(max_length=1000)
-    request_method = models.CharField(max_length=10, choices=REQUEST_METHODS)
-    content = models.CharField(max_length=1000)
+    protocol = models.CharField(max_length=10, choices={'http':'http'}, help_text="Protocollo sul quale agire.")
+    action = models.CharField(max_length=10, choices=ACTIONS, help_text="Azione da eseguire.")
+    message = models.CharField(max_length=1000, help_text="Messaggio (qualsiasi).")
+    request_method = models.CharField(max_length=10, choices=REQUEST_METHODS, help_text="Metodo sul quale agire.")
+    content = models.CharField(max_length=1000, help_text="Contenuto da bloccare ('TRIGGER')")
     case_sensitive = models.BooleanField(default=False)
-    content_location = models.CharField(max_length=20,choices=LOCATIONS)
+    content_location = models.CharField(max_length=20,choices=LOCATIONS, help_text="Dove si trova il content")
 
     def save(self, *args, **kwargs):
         if self.pk: #Update
