@@ -12,7 +12,7 @@ RST="\e[0m"
 set -e
 
 apt update && apt upgrade -y
-apt install -y micro python3-venv
+apt install -y micro python3-venv software-properties-common
 
 cd /opt
 if [ -f "rusicata.tar.gz" ]; then
@@ -62,9 +62,9 @@ python3 rusicata_master/manage.py makemigrations
 python3 rusicata_master/manage.py migrate
 python3 rusicata_master/manage.py createsuperuser --no-input
 
-sudo add-apt-repository ppa:oisf/suricata-stable -y
-sudo apt update
-sudo apt install suricata jq -y
+add-apt-repository ppa:oisf/suricata-stable -y
+apt update
+apt install suricata jq -y
 suricata --build-info
 
 if find var/lib/suricata/rules > /dev/null 2>&1; then
@@ -79,7 +79,7 @@ touch /var/lib/suricata/rules/suricata.rules
 cp rusicata_master/suricata.yaml /etc/suricata/suricata.yaml || true
 
 echo "${YLW}Lancio il test per suricata.yaml${RST}"
-sudo suricata -T -c /etc/suricata/suricata.yaml -v
+suricata -T -c /etc/suricata/suricata.yaml -v
 
 echo "Imposto i parametri di IPTABLES..."
 if iptables -I DOCKER-USER -j NFQUEUE --queue-num 0 --queue-bypass; then
@@ -108,8 +108,22 @@ fi
 
 sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -q 0 -D|' /usr/lib/systemd/system/suricata.service
 
-sudo systemctl daemon-reload
-sudo systemctl enable suricata
-sudo systemctl start suricata
+if systemctl daemon-reload; then
+	echo "Successfully reloaded daemon!"
+else
+	echo "Failed to reload daemon!"
+fi
+if systemctl enable suricata; then
+	echo "Successfully enabled daemon!"
+else
+	echo "Failed to enable daemon!"
+fi
+if systemctl start suricata; then
+	echo "Successfully started daemon!"
+else
+	echo "Failed to start daemon!"
+fi
 
-nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > /dev/null 2>&1 &
+#nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > /dev/null 2>&1 &
+nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > full_logs.txt 2>&1 & # Run server, save logs
+echo "Rusicata is up!"
