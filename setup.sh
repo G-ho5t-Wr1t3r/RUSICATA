@@ -175,6 +175,11 @@ fi
 
 sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -q 0 -D|' /usr/lib/systemd/system/suricata.service >&3 2>&4
 
+if systemctl stop suricata >&3 2>&4; then
+    echo "Successfully stopped daemon!"
+else
+    echo "Failed to stop daemon!"
+fi
 if systemctl daemon-reload >&3 2>&4; then
     echo "Successfully reloaded daemon!"
 else
@@ -185,7 +190,7 @@ if systemctl enable suricata >&3 2>&4; then
 else
     echo "Failed to enable daemon!"
 fi
-if systemctl start suricata >&3 2>&4; then
+if systemctl restart suricata >&3 2>&4; then
     echo "Successfully started daemon!"
 else
     echo "Failed to start daemon!"
@@ -194,6 +199,7 @@ fi
 #nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > /dev/null 2>&1 &
 nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > full_logs.txt 2>&1 & # Run server, save logs
 echo "Rusicata is up!"
+echo $(ps aux grep suricata)
 echo "Le regole sono in: /var/lib/suricata/rules/NAME.rules"
 
 LOCAL_IP=$(hostname -I | awk '{print $1}')

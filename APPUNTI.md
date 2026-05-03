@@ -102,6 +102,61 @@ Il comando che ci ha fatto decidere di chiudere per oggi:
 #### Conclusione
 Abbiamo deciso di risolvere il problema relativo al mascheramento dell'IP (già risolto per un'altra simulazione, ma per ragioni di tempo impossibile da fare adesso: comporterebbe il rebuild di tutte le macchine). Dopo aver risolto il problema effettueremo nuovamente dei test escludendo la possibilità di abiguità legate a questo problema.
 
-# Antonio
-REGOLA CHE BLOCCA TUTTO IL TRAFFICO SU UNA PORTA
+## SESSIONE 03-05-2026
+Oggi tramite una regola scritta a mano siamo riusciti a bloccare tutto il traffico su una specifica port:
+```
 drop tcp any any -> any 3000 (msg:"MIAO >^.^<_POST_BLOCK"; sid:600003; rev:1;)
+```
+
+Si è proseguito tentando di bloccare tutto il traffico in ingresso alla porta 8443 per evitare di contattare il servizio CCalendar
+
+```
+drop tcp any any -> 10.60.1.1 8443 (msg:"CCalendar TEST"; sid:1000001; rev:1;)
+drop udp any any -> 10.60.1.1 8443 (msg:"CCalendar TEST"; sid:1000002; rev:1;)
+```
+
+Tuttavia le regole non sembrano funzionare:
+
+| Comando | Azione |
+| -------------- | -------------- |
+| ```systemctl status suricata``` | Verifica lo stato di suricata |
+| ```journalctl -u suricata --no-pager \| tail -n 20``` | Visualizza i log recenti per il servizio|
+| ```grep -A 3 ""unix-command"" /etc/suricata/suricata.yaml```| Verifica la configurazione del socket Unix|
+| ```tail -f /var/log/suricata/eve.json \| grep TEST``` | Visualizza i log dal file `eve.json` | 
+
+Ho provato a fare anche altri test
+```
+root@vm1:~# grep "CCalendar.rules" /etc/suricata/suricata.yaml
+root@vm1:~# sed -i '/rule-files:/a \ - /var/lib/suricata/rules/CCalendar.rules' /etc/suricata/suricata.yaml
+root@vm1:~# suricatasc -c reload-rules
+Unable to connect to socket /var/run/suricata-command.socket: L178: [Errno 111] Connection refused
+root@vm1:~# grep "CCalendar.rules" /etc/suricata/suricata.yaml
+ - /var/lib/suricata/rules/CCalendar.rules
+root@vm1:~# tail -f /var/log/suricata/eve.json | grep TEST
+^C
+root@vm1:~# systemctl restart suricata
+Job for suricata.service failed because the control process exited with error code.
+See "systemctl status suricata.service" and "journalctl -xeu suricata.service" for details.
+```
+
+Visto l'errore di formattazione ho modificato il file a mano:
+```
+root@vm1:~# micro /etc/suricata/suricata.yaml
+root@vm1:~# suricata -T -c /etc/suricata/suricata.yaml
+i: suricata: This is Suricata version 7.0.3 RELEASE running in SYSTEM mode
+i: suricata: Configuration provided was successfully loaded. Exiting.
+```
+
+Dentro lo yaml ho dovuto modificare la sezione `rule-files`:
+```yaml
+rule-files:
+  - suricata.rules
+  - CCalendar.rules
+```
+
+Poi ho restartato il servizio di suricata
+```
+systemctl restart suricata
+```
+
+Eh niente... il computer di Dome si è spento. Alla prossima! 
