@@ -117,7 +117,7 @@ Per vedere i log in real-time si può consultare il file `fast.log`
 ## Dove vengono salvate le regole?
 Le regole vengono salvate in 
 ```
-/var/lib/suricata/rules/NAME.rule
+/var/lib/suricata/rules/NAME.rules
 ```
 
 # TODO 
