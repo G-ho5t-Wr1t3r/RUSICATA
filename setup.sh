@@ -40,7 +40,7 @@ VERBOSE=false
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -h|--help) usage ;;
-        -v|--verbose) VERBOSE=true; PARAM_PASSED=true; shift ;;
+        -v|--verbose) VERBOSE=true; PARAM_PASSED=true ;;
         -p1) P1="$2"; PARAM_PASSED=true; shift ;;
         -p2) P2="$2"; PARAM_PASSED=true; shift ;;
         -p3) P3="$2"; PARAM_PASSED=true; shift ;;
@@ -194,3 +194,7 @@ fi
 #nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > /dev/null 2>&1 &
 nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > full_logs.txt 2>&1 & # Run server, save logs
 echo "Rusicata is up!"
+echo "Le regole sono in: /var/lib/suricata/rules/NAME.rule"
+
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+echo "Admin panel: http://$LOCAL_IP:8000/admin"
