@@ -101,3 +101,7 @@ Il comando che ci ha fatto decidere di chiudere per oggi:
 
 #### Conclusione
 Abbiamo deciso di risolvere il problema relativo al mascheramento dell'IP (già risolto per un'altra simulazione, ma per ragioni di tempo impossibile da fare adesso: comporterebbe il rebuild di tutte le macchine). Dopo aver risolto il problema effettueremo nuovamente dei test escludendo la possibilità di abiguità legate a questo problema.
+
+# Antonio
+REGOLA CHE BLOCCA TUTTO IL TRAFFICO SU UNA PORTA
+drop tcp any any -> any 3000 (msg:"MIAO >^.^<_POST_BLOCK"; sid:600003; rev:1;)
