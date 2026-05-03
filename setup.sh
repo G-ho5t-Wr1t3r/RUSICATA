@@ -66,6 +66,8 @@ else
     exec 3>/dev/null 4>/dev/null
 fi
 
+echo "INIZIALIZZAZIONE"
+
 # software-properties-common è necessario per add-apt-repository
 apt update >&3 2>&4 && apt upgrade -y >&3 2>&4
 apt install -y micro python3-venv software-properties-common >&3 2>&4
@@ -160,7 +162,7 @@ else
 fi
 
 if iptables -I INPUT -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
-    echo -e "${GRN}>Input ✔${RST}"
+    echo -e "${GRN}Input ✔${RST}"
 else 
     echo -e "${RED}Input ✗${RST}"
 fi
