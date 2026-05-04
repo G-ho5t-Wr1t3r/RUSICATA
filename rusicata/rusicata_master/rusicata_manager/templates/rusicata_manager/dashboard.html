@@ -124,6 +124,40 @@
         </div>
     </div>
 
+    <div class="card" style="margin-bottom: 20px;">
+        <h2>Managed Services</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Port</th>
+                        <th>HTTP Rules</th>
+                        <th>Transport Rules</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                    <tr>
+                        <td>{{ service.name }}</td>
+                        <td>{{ service.port }}</td>
+                        <td>{{ service.httprule_set.count }}</td>
+                        <td>{{ service.transportlevelrule_set.count }}</td>
+                        <td>
+                            <a href="{% url 'service_rules' service.id %}" style="color: var(--primary-color); text-decoration: none; font-weight: bold;">Manage Rules</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">No services defined.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="card">
         <h2>Recent Alerts (Last 20)</h2>
         <div style="overflow-x: auto;">

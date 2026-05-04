@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Rules - {{ service.name }}</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --primary-color: #2c3e50;
+            --success-color: #27ae60;
+            --danger-color: #c0392b;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-success { background-color: var(--success-color); }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th { background-color: #f8f9fa; }
+
+        .status-active { color: var(--success-color); font-weight: bold; }
+        .status-inactive { color: var(--danger-color); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Rules for {{ service.name }} (Port {{ service.port }})</h1>
+        <div>
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
+        </div>
+    </header>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2>HTTP Rules</h2>
+            <div>
+                <a href="{% url 'toggle_all_rules' service.id 'enable' %}" class="btn btn-success btn-sm">Enable All</a>
+                <a href="{% url 'toggle_all_rules' service.id 'disable' %}" class="btn btn-danger btn-sm">Disable All</a>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>SID</th>
+                    <th>Action</th>
+                    <th>Method</th>
+                    <th>Content</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rule in http_rules %}
+                <tr>
+                    <td>{{ rule.sid }}</td>
+                    <td>{{ rule.action }}</td>
+                    <td>{{ rule.request_method }}</td>
+                    <td>{{ rule.content }}</td>
+                    <td>{{ rule.content_location }}</td>
+                    <td>
+                        <span class="{% if rule.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            {{ rule.is_active|yesno:"Active,Inactive" }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'toggle_rule' 'http' rule.id %}" class="btn {% if rule.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm">
+                            {{ rule.is_active|yesno:"Disable,Enable" }}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center;">No HTTP rules found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Transport Level Rules</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>SID</th>
+                    <th>Action</th>
+                    <th>Protocol</th>
+                    <th>Content</th>
+                    <th>Direction</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rule in transport_rules %}
+                <tr>
+                    <td>{{ rule.sid }}</td>
+                    <td>{{ rule.action }}</td>
+                    <td>{{ rule.protocol }}</td>
+                    <td>{{ rule.content }}</td>
+                    <td>{{ rule.flow_direction }}</td>
+                    <td>
+                        <span class="{% if rule.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            {{ rule.is_active|yesno:"Active,Inactive" }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'toggle_rule' 'transport' rule.id %}" class="btn {% if rule.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm">
+                            {{ rule.is_active|yesno:"Disable,Enable" }}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center;">No Transport Level rules found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
