@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rusicata Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --primary-color: #2c3e50;
+            --success-color: #27ae60;
+            --danger-color: #c0392b;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .status-active { background-color: var(--success-color); }
+        .status-inactive { background-color: var(--danger-color); }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        tr:hover { background-color: #f1f1f1; }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .refresh-note {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Rusicata Dashboard</h1>
+        <div>
+            Suricata Status: 
+            <span class="status-badge {% if status == 'Active' %}status-active{% else %}status-inactive{% endif %}">
+                {{ status }}
+            </span>
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>Actions Distribution</h2>
+            <div class="chart-container">
+                <canvas id="actionsChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Top Protocols</h2>
+            <div class="chart-container">
+                <canvas id="protocolsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Recent Alerts (Last 20)</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Source IP</th>
+                        <th>Dest IP</th>
+                        <th>Proto</th>
+                        <th>Message</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in recent_events %}
+                    <tr>
+                        <td>{{ event.timestamp }}</td>
+                        <td>{{ event.src_ip }}</td>
+                        <td>{{ event.dest_ip }}</td>
+                        <td>{{ event.proto }}</td>
+                        <td>{{ event.message }}</td>
+                        <td>{{ event.action }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center;">No recent alerts found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p class="refresh-note">Auto-refreshing every 10 seconds...</p>
+
+    <script>
+        // Data from Django
+        const stats = {{ stats|json_script:"stats-data" }};
+        const statsData = JSON.parse(document.getElementById('stats-data').textContent);
+
+        // Actions Chart
+        const actionsCtx = document.getElementById('actionsChart').getContext('2d');
+        const actionsLabels = Object.keys(statsData.actions);
+        const actionsValues = Object.values(statsData.actions);
+
+        new Chart(actionsCtx, {
+            type: 'pie',
+            data: {
+                labels: actionsLabels,
+                datasets: [{
+                    data: actionsValues,
+                    backgroundColor: [
+                        '#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Protocols Chart
+        const protocolsCtx = document.getElementById('protocolsChart').getContext('2d');
+        const protocolsLabels = Object.keys(statsData.protocols);
+        const protocolsValues = Object.values(statsData.protocols);
+
+        new Chart(protocolsCtx, {
+            type: 'bar',
+            data: {
+                labels: protocolsLabels,
+                datasets: [{
+                    label: 'Count',
+                    data: protocolsValues,
+                    backgroundColor: '#34495e'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Auto-refresh
+        setTimeout(function() {
+            location.reload();
+        }, 10000);
+    </script>
+</body>
+</html>
