@@ -4,11 +4,14 @@ from collections import Counter
 
 DEFAULT_EVE_PATH = '/var/log/suricata/eve.json'
 
-def get_stats(file_path=DEFAULT_EVE_PATH, max_lines=1000):
+def get_stats(file_path=None, max_lines=1000):
     """
     Parses Suricata's eve.json log file efficiently (low RAM usage) by reading from the end.
     Aggregates counts for actions and protocols.
     """
+    if file_path is None:
+        file_path = DEFAULT_EVE_PATH
+
     if not os.path.exists(file_path):
         return {'actions': {}, 'protocols': {}}
 
@@ -74,10 +77,13 @@ def _process_event_for_stats(event, actions, protocols):
     if app_proto:
         protocols[app_proto.upper()] += 1
 
-def get_recent_events(n=20, file_path=DEFAULT_EVE_PATH):
+def get_recent_events(n=20, file_path=None):
     """
     Returns the last n events of type 'alert' from eve.json.
     """
+    if file_path is None:
+        file_path = DEFAULT_EVE_PATH
+
     if not os.path.exists(file_path):
         return []
 

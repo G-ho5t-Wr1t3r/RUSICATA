@@ -1,4 +1,4 @@
 - [x] Aggiungere supporto per tcp, udp, https(?)
-- [ ] Creare una schermata home decente con login iniziale e collegamento rapido verso la admin dashboard per gestire facilmente il db
-- [ ] Creare delle funzioni per avere telemetrie: 1) Grafico e numero di pacchetti scartati/accettati 2) Numero di regole applicate e visualizzazione rapida 3) Modifica agevolata delle regole 4) Stop/Resume per le regole
-- [ ] Parsing e gestione dell'eve.json per filtrare facilmente solo i log delle regole che ho settato/di regole specifiche
+- [x] Creare una schermata home decente con login iniziale e collegamento rapido verso la admin dashboard per gestire facilmente il db
+- [x] Creare delle funzioni per avere telemetrie: 1) Grafico e numero di pacchetti scartati/accettati 2) Numero di regole applicate e visualizzazione rapida 3) Modifica agevolata delle regole 4) Stop/Resume per le regole
+- [x] Parsing e gestione dell'eve.json per filtrare facilmente solo i log delle regole che ho settato/di regole specifiche
