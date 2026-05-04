@@ -1,0 +1,1 @@
+- [ ] Visualizzazione di anteprima regex quando si istanzia una regola (PERL)
