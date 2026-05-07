@@ -16,7 +16,9 @@
 - [x] Before it was possible to add a rule, there war a sort of prepared statement, give me it back
 - [x] Redesign the login followng the actual frontend
 - [ ] Give me back my rapid filter logic (alert, reject ecc) and my string searching for suricata logs
-- [ ] Update the logs dinamically within the countdown
-- [ ] Add fast filter for logs All, Drop, Rejct, ecc for all the actions
-- [ ] Add text search bar for logs
-- [ ] Add a column for the active rules for servicess as x of y
+- [x] Update the logs dinamically within the countdown
+- [x] Add fast filter for logs All, Drop, Rejct, ecc for all the actions
+- [x] Add text search bar for logs
+- [x] Add a column for the active rules for servicess as x of y
+- [ ] The suricata status is no longer coherent with the real status of the daemon
+- [ ] the active rule counter always counts 0
