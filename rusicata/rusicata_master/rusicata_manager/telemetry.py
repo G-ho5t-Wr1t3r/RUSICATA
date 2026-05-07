@@ -2,7 +2,38 @@ import json
 import os
 from collections import Counter
 
+import subprocess
+
 DEFAULT_EVE_PATH = '/var/log/suricata/eve.json'
+LOGS_DIR = '/var/log/suricata/'
+
+def get_system_stats():
+    """
+    Returns RAM usage of suricata process and disk usage of logs directory.
+    """
+    stats = {'ram': '0 MB', 'disk': '0 MB'}
+    
+    # RAM usage (RSS)
+    try:
+        # ps -C suricata -o rss= returns RSS in KB
+        output = subprocess.check_output(['ps', '-C', 'suricata', '-o', 'rss='], text=True).strip()
+        if output:
+            # sum in case of multiple processes
+            total_kb = sum(int(line) for line in output.splitlines())
+            stats['ram'] = f"{total_kb / 1024:.1f} MB"
+    except (subprocess.CalledProcessError, ValueError, FileNotFoundError):
+        pass
+
+    # Disk usage of logs directory
+    try:
+        # du -sh returns a human readable size
+        output = subprocess.check_output(['du', '-sh', LOGS_DIR], text=True).strip()
+        if output:
+            stats['disk'] = output.split()[0]
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+        
+    return stats
 
 def get_stats(file_path=None, max_lines=1000):
     """

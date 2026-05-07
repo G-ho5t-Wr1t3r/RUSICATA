@@ -15,3 +15,13 @@
 - [x] When i create a new entity from the admin panel it requiret too many time to save the entity
 - [x] I want to be able to navigate the eve.json seeing if the rule is applied or not
 - [x] I want to be able to stop and also to add and remove rules by the frontend
+
+- [x] The filter doesn't works
+- [x] In the logs "Action" must be exactly the action specified in the rule
+- [x] The donut graph must distingue the different rules and not for services, i want to se a slice for every service
+- [x] All the disable buttons must be toggle and the delete buttons must be garbage
+- [x] No alert message from the browser, all the confirmations or else must be app's popup
+- [x] I want to be able to see the RAM and disk usage used by suricata every second update without mantain history of it to avoid overhead and useless data, is just a telemetry usefull for me
+- [x] I want a "+" button to be able to add the services from the frontend
+- [x] The Suricata Config dialog is broken and useless it doesn't show any interesting info
+ 

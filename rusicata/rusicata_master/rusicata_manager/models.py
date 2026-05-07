@@ -168,18 +168,16 @@ class HttpRule(models.Model):
             remove_rule(self)
 
         service_id = self.service.id
+        # Range 100.000+ for HTTP rules
         num_rules = HttpRule.objects.filter(service=self.service).count()
-        self.sid = (service_id * 100000) + num_rules + 1
-        # Call the original save method to save the changes to the database
+        self.sid = 1000000 + (service_id * 1000) + num_rules + 1
+        
         super().save(*args, **kwargs)
-
-        # Call the create_file function with the current instance
         insert_rule(self)
 
-        def delete(self, *args, **kwargs):
-            # Call the original delete method to delete the instance
-            remove_rule(self)
-            super().delete(*args, **kwargs)
+    def delete(self, *args, **kwargs):
+        remove_rule(self)
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"{self.service.name}: {self.action} : {self.request_method} : {self.content_location} : {self.content}"
@@ -237,10 +235,10 @@ class TransportLevelRule(models.Model):
                 print(f"Updating transport rule: {self.pk}")
                 remove_rule(self)
 
-            # Calculate the new SID
+            # Calculate the new SID - Range 2.000.000+
             service_id = self.service.id
             num_rules = TransportLevelRule.objects.filter(service=self.service).count()
-            self.sid = (service_id * 100000) + num_rules + 1
+            self.sid = 2000000 + (service_id * 1000) + num_rules + 1
 
             # Save into database
             super().save(*args, **kwargs)

@@ -18,12 +18,47 @@ def dashboard_stats(request):
         status = 'Inactive'
 
     stats = telemetry.get_stats()
-    recent_events = telemetry.get_recent_events(n=20)
+    system_stats = telemetry.get_system_stats()
+    recent_events = telemetry.get_recent_events(n=100) # Read more for better stats
+    
+    # Events per service aggregation
+    services = Service.objects.all()
+    events_per_service = {s.name: 0 for s in services}
+    events_per_service['Other'] = 0
+    
+    port_to_service = {s.port: s.name for s in services}
+    
+    # Enrich recent events with exact rule actions from DB
+    enriched_events = []
+    for i, event in enumerate(recent_events):
+        sid = event.get('sid')
+        dest_port = event.get('dest_port')
+        action = event.get('action')
+        
+        # Aggregate for chart using all 100 events
+        service_name = port_to_service.get(dest_port, 'Other')
+        if service_name in events_per_service:
+            events_per_service[service_name] += 1
+            
+        if i < 20: # Only enrich and send back last 20 for UI table
+            if sid:
+                rule = HttpRule.objects.filter(sid=sid).first() or \
+                       TransportLevelRule.objects.filter(sid=sid).first()
+                if rule:
+                    action = rule.action.upper()
+            
+            event['action'] = action
+            enriched_events.append(event)
+        
+    # Also count using the telemetry stats (which might be more than 100 lines)
+    # But for simplicity and real-time feel, we use the recent_events buffer.
     
     return JsonResponse({
         'status': status,
         'stats': stats,
-        'recent_events': recent_events,
+        'system_stats': system_stats,
+        'events_per_service': events_per_service,
+        'recent_events': enriched_events,
     })
 
 @login_required
@@ -137,3 +172,12 @@ def delete_rule(request, rule_type, rule_id):
     service_id = rule.service.id
     rule.delete()
     return redirect('service_rules', service_id=service_id)
+
+@login_required
+def add_service(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        port = request.POST.get('port')
+        if name and port:
+            Service.objects.create(name=name, port=port)
+    return redirect('dashboard')

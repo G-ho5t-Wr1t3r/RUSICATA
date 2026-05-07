@@ -10,5 +10,6 @@ urlpatterns = [
     path("add-http/<int:service_id>/", views.add_http_rule, name="add_http_rule"),
     path("add-transport/<int:service_id>/", views.add_transport_rule, name="add_transport_rule"),
     path("delete-rule/<str:rule_type>/<int:rule_id>/", views.delete_rule, name="delete_rule"),
+    path("add-service/", views.add_service, name="add_service"),
     path("old_index/", views.index, name="index"),
 ]
