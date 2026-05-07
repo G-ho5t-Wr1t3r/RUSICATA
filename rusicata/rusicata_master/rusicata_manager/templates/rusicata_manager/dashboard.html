@@ -578,6 +578,20 @@
             <div class="section-header">
                 <h2 class="card-title">Recent Alerts</h2>
             </div>
+            
+            <div class="filters" style="display: flex; gap: 10px; margin-bottom: 1rem; align-items: center; background: var(--bg-card); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                <div class="btn-group" style="display: flex; gap: 5px;">
+                    <button class="btn btn-sm filter-btn active" data-filter="all">All</button>
+                    <button class="btn btn-sm filter-btn" data-filter="alert">Alert</button>
+                    <button class="btn btn-sm filter-btn" data-filter="drop">Drop</button>
+                    <button class="btn btn-sm filter-btn" data-filter="reject">Reject</button>
+                </div>
+                <div style="flex-grow: 1; position: relative;">
+                    <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                    <input type="text" id="log-search" placeholder="Search logs..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 30px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 10px; color: var(--text-main);">
+                </div>
+            </div>
+
             <div class="table-container">
                 <table>
                     <thead>
@@ -1024,6 +1038,7 @@
                         `;
                         alertsBody.innerHTML += row;
                     });
+                    filterLogs();
                 }
 
             } catch (e) {
@@ -1246,6 +1261,46 @@
                 timerEl.innerText = `Refreshing in ${countdown}s...`;
             }, 1000);
         }
+
+        // Log Filtering & Search
+        let currentFilter = 'all';
+        let currentSearchTerm = '';
+
+        function filterLogs() {
+            const rows = document.querySelectorAll('#alerts-table-body tr');
+            rows.forEach(row => {
+                const actionCell = row.querySelector('td:last-child .status-badge');
+                if (!actionCell) return;
+                
+                const action = actionCell.innerText.toLowerCase().trim();
+                const text = row.innerText.toLowerCase();
+                
+                const matchesFilter = currentFilter === 'all' || action === currentFilter;
+                const matchesSearch = text.includes(currentSearchTerm.toLowerCase());
+                
+                if (matchesFilter && matchesSearch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('filter-btn')) {
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                currentFilter = e.target.getAttribute('data-filter');
+                filterLogs();
+            }
+        });
+
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'log-search') {
+                currentSearchTerm = e.target.value;
+                filterLogs();
+            }
+        });
 
         // Lifecycle
         window.onload = () => {
