@@ -106,6 +106,21 @@ def service_rules(request, service_id):
     })
 
 @login_required
+def service_rules_api(request, service_id):
+    service = get_object_or_404(Service, id=service_id)
+    http_rules = list(service.httprule_set.values('id', 'message', 'is_active', 'action'))
+    transport_rules = list(service.transportlevelrule_set.values('id', 'message', 'is_active', 'action'))
+    
+    # Add type to each rule
+    for r in http_rules: r['type'] = 'http'
+    for r in transport_rules: r['type'] = 'transport'
+    
+    return JsonResponse({
+        'service_name': service.name,
+        'rules': http_rules + transport_rules
+    })
+
+@login_required
 def toggle_rule(request, rule_type, rule_id):
     if rule_type == 'http':
         rule = get_object_or_404(HttpRule, id=rule_id)
@@ -114,6 +129,10 @@ def toggle_rule(request, rule_type, rule_id):
     
     rule.is_active = not rule.is_active
     rule.save()
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        return JsonResponse({'status': 'success', 'is_active': rule.is_active})
+    
     return redirect('service_rules', service_id=rule.service.id)
 
 @login_required
@@ -171,6 +190,10 @@ def delete_rule(request, rule_type, rule_id):
     
     service_id = rule.service.id
     rule.delete()
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        return JsonResponse({'status': 'success'})
+    
     return redirect('service_rules', service_id=service_id)
 
 @login_required

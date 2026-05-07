@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("api/stats/", views.dashboard_stats, name="dashboard_stats"),
+    path("api/service-rules/<int:service_id>/", views.service_rules_api, name="service_rules_api"),
     path("service/<int:service_id>/", views.service_rules, name="service_rules"),
     path("toggle-rule/<str:rule_type>/<int:rule_id>/", views.toggle_rule, name="toggle_rule"),
     path("toggle-all/<int:service_id>/<str:action>/", views.toggle_all_rules, name="toggle_all_rules"),
