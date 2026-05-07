@@ -2,7 +2,7 @@ import subprocess
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from . import telemetry
-from .models import Service, HttpRule, TransportLevelRule
+from .models import Service, HttpRule, TransportLevelRule, load_suricata_config
 
 def index(request):
     return render(request, 'rusicata_manager/index.html')
@@ -19,12 +19,24 @@ def dashboard(request):
     stats = telemetry.get_stats()
     recent_events = telemetry.get_recent_events(n=20)
     services = Service.objects.all()
+    
+    # Load basic suricata config for display
+    try:
+        suricata_config = load_suricata_config('suricata.yaml')
+        config_summary = {
+            'rule_files': suricata_config.get('rule-files', []),
+            'interfaces': [itf.get('interface') for itf in suricata_config.get('af-packet', []) if itf.get('interface')],
+            'app_layer_protos': [proto for proto, cfg in suricata_config.get('app-layer', {}).get('protocols', {}).items() if cfg.get('enabled') is True]
+        }
+    except Exception:
+        config_summary = {}
 
     context = {
         'status': status,
         'stats': stats,
         'recent_events': recent_events,
         'services': services,
+        'config_summary': config_summary,
     }
     return render(request, 'rusicata_manager/dashboard.html', context)
 

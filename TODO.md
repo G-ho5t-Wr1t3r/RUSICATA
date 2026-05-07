@@ -2,9 +2,9 @@
 - [x] Creare una schermata home decente con login iniziale e collegamento rapido verso la admin dashboard per gestire facilmente il db
 - [x] Creare delle funzioni per avere telemetrie: 1) Grafico e numero di pacchetti scartati/accettati 2) Numero di regole applicate e visualizzazione rapida 3) Modifica agevolata delle regole 4) Stop/Resume per le regole
 - [x] Parsing e gestione dell'eve.json per filtrare facilmente solo i log delle regole che ho settato/di regole specifiche
-- [ ] Errore su homepage: 
-    ; const statsData = JSON.parse(document.getElementById('stats-data').textContent); // Actions Chart const actionsCtx = document.getElementById('actionsChart').getContext('2d'); const actionsLabels = Object.keys(statsData.actions); const actionsValues = Object.values(statsData.actions); new Chart(actionsCtx, { type: 'pie', data: { labels: actionsLabels, datasets: [{ data: actionsValues, backgroundColor: [ '#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6' ] }] }, options: { responsive: true, maintainAspectRatio: false } }); // Protocols Chart const protocolsCtx = document.getElementById('protocolsChart').getContext('2d'); const protocolsLabels = Object.keys(statsData.protocols); const protocolsValues = Object.values(statsData.protocols); new Chart(protocolsCtx, { type: 'bar', data: { labels: protocolsLabels, datasets: [{ label: 'Count', data: protocolsValues, backgroundColor: '#34495e' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } }); // Auto-refresh setTimeout(function() { location.reload(); }, 10000); 
-- [ ] Implementa il tema scuro
-- [ ] Bisogna mostrare tutte le configurazioni attuali di suricata non solo alert
-- [ ] Non voglio vedere solo gli alert, ma dei filtri rapidi (alert, reject ecc) e anche la possibilità di creacre globalmente una stringa o una regex
-- [ ] Il countdown è statico, dice solo: Auto-refreshing every 10 seconds... Mi paicerebbe un countdown che dice Auto-refreshing in: dinamico
+- [x] Errore su homepage
+- [x] Implementa il tema scuro
+- [x] Bisogna mostrare tutte le configurazioni attuali di suricata non solo alert
+- [x] Non voglio vedere solo gli alert, ma dei filtri rapidi (alert, reject ecc)
+- [x] Possibilità di creare globalmente una stringa o una regex
+- [x] Il countdown è statico, dice solo: Auto-refreshing every 10 seconds... Mi paicerebbe un countdown che dice Auto-refreshing in: dinamico

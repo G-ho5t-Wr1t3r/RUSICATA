@@ -14,6 +14,18 @@
             --success-color: #27ae60;
             --danger-color: #c0392b;
             --border-color: #ddd;
+            --header-bg: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --border-color: #444;
+            --header-bg: #2d2d2d;
         }
 
         body {
@@ -22,6 +34,7 @@
             color: var(--text-color);
             margin: 0;
             padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         header {
@@ -29,8 +42,26 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 10px;
+            padding: 10px 20px;
             border-bottom: 2px solid var(--primary-color);
+            background-color: var(--header-bg);
+            border-radius: 8px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
         }
 
         .status-badge {
@@ -56,6 +87,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             padding: 20px;
             border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .card h2 {
@@ -79,11 +111,11 @@
         }
 
         th {
-            background-color: #f8f9fa;
+            background-color: rgba(0,0,0,0.05);
             font-weight: bold;
         }
 
-        tr:hover { background-color: #f1f1f1; }
+        tr:hover { background-color: rgba(0,0,0,0.02); }
 
         .chart-container {
             position: relative;
@@ -93,19 +125,55 @@
 
         .refresh-note {
             font-size: 0.8rem;
-            color: #666;
+            color: #888;
             text-align: right;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        #search-input {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            flex-grow: 1;
+            max-width: 300px;
         }
     </style>
 </head>
 <body>
     <header>
         <h1>Rusicata Dashboard</h1>
-        <div>
-            Suricata Status: 
-            <span class="status-badge {% if status == 'Active' %}status-active{% else %}status-inactive{% endif %}">
-                {{ status }}
-            </span>
+        <div class="header-controls">
+            <button id="theme-toggle" class="theme-toggle">🌙 Dark Mode</button>
+            <div>
+                Suricata Status: 
+                <span class="status-badge {% if status == 'Active' %}status-active{% else %}status-inactive{% endif %}">
+                    {{ status }}
+                </span>
+            </div>
         </div>
     </header>
 
@@ -120,6 +188,21 @@
             <h2>Top Protocols</h2>
             <div class="chart-container">
                 <canvas id="protocolsChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Suricata Config Summary</h2>
+            <div style="font-size: 0.9rem;">
+                <p><strong>Interfaces:</strong> {{ config_summary.interfaces|join:", " }}</p>
+                <p><strong>Rule Files:</strong> {{ config_summary.rule_files|length }}</p>
+                <div style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); padding: 5px; border-radius: 4px; background: rgba(0,0,0,0.02);">
+                    <p style="margin-top: 0; font-weight: bold;">Enabled App-Layer Protocols:</p>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        {% for proto in config_summary.app_layer_protos %}
+                        <li>{{ proto }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -159,9 +242,16 @@
     </div>
 
     <div class="card">
-        <h2>Recent Alerts (Last 20)</h2>
+        <h2>Recent Alerts</h2>
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="alert">Alerts</button>
+            <button class="filter-btn" data-filter="drop">Drops</button>
+            <button class="filter-btn" data-filter="reject">Rejects</button>
+            <input type="text" id="search-input" placeholder="Search message, IP, protocol...">
+        </div>
         <div style="overflow-x: auto;">
-            <table>
+            <table id="alerts-table">
                 <thead>
                     <tr>
                         <th>Timestamp</th>
@@ -174,13 +264,17 @@
                 </thead>
                 <tbody>
                     {% for event in recent_events %}
-                    <tr>
+                    <tr class="alert-row" data-action="{{ event.action|lower }}">
                         <td>{{ event.timestamp }}</td>
                         <td>{{ event.src_ip }}</td>
                         <td>{{ event.dest_ip }}</td>
                         <td>{{ event.proto }}</td>
                         <td>{{ event.message }}</td>
-                        <td>{{ event.action }}</td>
+                        <td>
+                            <span class="status-badge {% if event.action|lower == 'alert' %}status-active{% elif event.action|lower == 'drop' or event.action|lower == 'reject' %}status-inactive{% endif %}" style="font-size: 0.8rem; padding: 2px 10px;">
+                                {{ event.action }}
+                            </span>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -192,11 +286,34 @@
         </div>
     </div>
 
-    <p class="refresh-note">Auto-refreshing every 10 seconds...</p>
+    <p class="refresh-note" id="refresh-timer">Auto-refreshing in 10 seconds...</p>
+
+    {{ stats|json_script:"stats-data" }}
 
     <script>
+        // Theme Management
+        const themeToggle = document.getElementById('theme-toggle');
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️ Light Mode';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            let theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                themeToggle.textContent = '🌙 Dark Mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.textContent = '☀️ Light Mode';
+            }
+        });
+
         // Data from Django
-        const stats = {{ stats|json_script:"stats-data" }};
         const statsData = JSON.parse(document.getElementById('stats-data').textContent);
 
         // Actions Chart
@@ -204,7 +321,7 @@
         const actionsLabels = Object.keys(statsData.actions);
         const actionsValues = Object.values(statsData.actions);
 
-        new Chart(actionsCtx, {
+        const actionsChart = new Chart(actionsCtx, {
             type: 'pie',
             data: {
                 labels: actionsLabels,
@@ -217,7 +334,14 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: getComputedStyle(document.body).getPropertyValue('--text-color')
+                        }
+                    }
+                }
             }
         });
 
@@ -226,14 +350,14 @@
         const protocolsLabels = Object.keys(statsData.protocols);
         const protocolsValues = Object.values(statsData.protocols);
 
-        new Chart(protocolsCtx, {
+        const protocolsChart = new Chart(protocolsCtx, {
             type: 'bar',
             data: {
                 labels: protocolsLabels,
                 datasets: [{
                     label: 'Count',
                     data: protocolsValues,
-                    backgroundColor: '#34495e'
+                    backgroundColor: '#3498db'
                 }]
             },
             options: {
@@ -241,16 +365,71 @@
                 maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color') },
+                        ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-color') }
+                    },
+                    x: {
+                        grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color') },
+                        ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-color') }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: getComputedStyle(document.body).getPropertyValue('--text-color')
+                        }
                     }
                 }
             }
         });
 
-        // Auto-refresh
-        setTimeout(function() {
-            location.reload();
-        }, 10000);
+        // Filtering Logic
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const searchInput = document.getElementById('search-input');
+        const rows = document.querySelectorAll('.alert-row');
+
+        function filterTable() {
+            const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            const searchText = searchInput.value.toLowerCase();
+
+            rows.forEach(row => {
+                const action = row.dataset.action;
+                const text = row.textContent.toLowerCase();
+                const matchesFilter = activeFilter === 'all' || action === activeFilter;
+                const matchesSearch = text.includes(searchText);
+
+                if (matchesFilter && matchesSearch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                filterTable();
+            });
+        });
+
+        searchInput.addEventListener('input', filterTable);
+
+        // Dynamic Countdown and Auto-refresh
+        let timeLeft = 10;
+        const timerElement = document.getElementById('refresh-timer');
+        
+        const countdown = setInterval(function() {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                location.reload();
+            } else {
+                timerElement.textContent = `Auto-refreshing in ${timeLeft} seconds...`;
+            }
+        }, 1000);
     </script>
 </body>
 </html>

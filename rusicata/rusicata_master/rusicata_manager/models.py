@@ -264,3 +264,62 @@ def pre_delete_callback(sender, instance, using, **kwargs):
     except Exception as e:
         # Handle signal exceptions
         print(f"Error in pre_delete: {e}")
+
+
+class GlobalRule(models.Model):
+    ACTIONS = {"alert": "alert", "drop": "drop", "reject": "reject"}
+    PROTOCOLS = {"tcp": "tcp", "udp": "udp", "http": "http", "icmp": "icmp"}
+
+    sid = models.IntegerField(unique=True)
+    protocol = models.CharField(max_length=10, choices=PROTOCOLS, default="tcp")
+    action = models.CharField(max_length=10, choices=ACTIONS, default="alert")
+    message = models.CharField(max_length=1000)
+    content = models.CharField(max_length=1000, help_text="Stringa o regex da cercare")
+    is_regex = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if not self.sid:
+            max_sid = GlobalRule.objects.all().aggregate(models.Max('sid'))['sid__max'] or 2000000
+            self.sid = max_sid + 1
+
+        if self.pk:
+            remove_global_rule(self)
+
+        super().save(*args, **kwargs)
+        if self.is_active:
+            insert_global_rule(self)
+
+    def delete(self, *args, **kwargs):
+        remove_global_rule(self)
+        super().delete(*args, **kwargs)
+
+def rulify_global(rule):
+    content_part = f'pcre:"/{rule.content}/"' if rule.is_regex else f'content:"{rule.content}"'
+    return f'{rule.action} {rule.protocol} any any -> any any (msg:"{rule.message}"; {content_part}; sid:{rule.sid}; rev:1;)\n'
+
+GLOBAL_RULES_FILE = f'{RULES_BASE_PATH}global.rules'
+
+def insert_global_rule(rule):
+    if not os.path.exists(GLOBAL_RULES_FILE):
+        with open(GLOBAL_RULES_FILE, 'w') as f: f.write("")
+        # Add to suricata.yaml if not present
+        config = load_suricata_config('suricata.yaml')
+        if 'global.rules' not in config['rule-files']:
+            config['rule-files'].append('global.rules')
+            dump_suricata_config(config, 'suricata.yaml')
+            suricata_deamon_reload()
+
+    with open(GLOBAL_RULES_FILE, 'a') as f:
+        f.write(rulify_global(rule))
+    suricata_hot_reload()
+
+def remove_global_rule(rule):
+    if not os.path.exists(GLOBAL_RULES_FILE): return
+    with open(GLOBAL_RULES_FILE, 'r') as f:
+        lines = f.readlines()
+    with open(GLOBAL_RULES_FILE, 'w') as f:
+        for line in lines:
+            if f'sid:{rule.sid};' not in line:
+                f.write(line)
+    suricata_hot_reload()

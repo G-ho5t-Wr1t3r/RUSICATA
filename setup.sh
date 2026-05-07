@@ -137,7 +137,8 @@ if ! command -v suricata >/dev/null 2>&1; then
     rm -f /etc/apt/sources.list.d/*suricata*.list >&3 2>&4 || true
     
     apt update >&3 2>&4
-    apt install suricata jq -y >&3 2>&4
+    #apt install suricata jq -y >&3 2>&4
+    apt install suricata=7.* jq -y >&3 2>&4 || echo "Errore nell'installazione di Suricata 7"
     suricata --build-info >&3 2>&4
 else
     echo "Suricata è già presente!"
