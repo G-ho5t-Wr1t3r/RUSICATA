@@ -94,11 +94,17 @@ def get_stats(file_path=None, max_lines=1000):
     }
 
 def _process_event_for_stats(event, actions, protocols):
+    action = None
     if event.get('event_type') == 'alert':
         alert = event.get('alert', {})
         action = alert.get('action')
-        if action:
-            actions[action] += 1
+    
+    # Fallback to top-level action if present
+    if not action:
+        action = event.get('action')
+        
+    if action:
+        actions[action.lower()] += 1
             
     proto = event.get('proto')
     if proto:

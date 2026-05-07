@@ -1008,36 +1008,62 @@
                 }
 
                 if (isFullUpdate) {
-                    // Update charts
-                    actionsChart.data.labels = Object.keys(data.events_per_service);
-                    actionsChart.data.datasets[0].data = Object.values(data.events_per_service);
+                    // Update Actions Dist. Chart (Donut) - use actions stats from telemetry
+                    const actionLabels = Object.keys(data.stats.actions);
+                    const actionValues = Object.values(data.stats.actions);
+                    const hasActionData = actionValues.some(v => v > 0);
+                    
+                    if (hasActionData) {
+                        actionsChart.data.labels = actionLabels.map(l => l.toUpperCase());
+                        actionsChart.data.datasets[0].data = actionValues;
+                    } else {
+                        // Fallback to events per service if no actions but has service hits
+                        const serviceLabels = Object.keys(data.events_per_service);
+                        const serviceValues = Object.values(data.events_per_service);
+                        if (serviceValues.some(v => v > 0)) {
+                            actionsChart.data.labels = serviceLabels;
+                            actionsChart.data.datasets[0].data = serviceValues;
+                        } else {
+                            actionsChart.data.labels = ['No Data'];
+                            actionsChart.data.datasets[0].data = [1];
+                        }
+                    }
                     actionsChart.update();
 
-                    protocolsChart.data.labels = Object.keys(data.stats.protocols);
-                    protocolsChart.data.datasets[0].data = Object.values(data.stats.protocols);
+                    // Update Protocols Chart
+                    const protoLabels = Object.keys(data.stats.protocols);
+                    const protoValues = Object.values(data.stats.protocols);
+                    protocolsChart.data.labels = protoLabels;
+                    protocolsChart.data.datasets[0].data = protoValues;
                     protocolsChart.update();
 
                     // Update Alerts Table
                     const alertsBody = document.getElementById('alerts-table-body');
-                    alertsBody.innerHTML = '';
-                    data.recent_events.slice(0, 10).forEach(event => {
-                        const actionClass = event.action.toLowerCase() === 'alert' ? 'badge-alert' : 'badge-drop';
-                        const row = `
-                            <tr>
-                                <td class="text-muted" style="font-size: 12px;">${event.timestamp.substring(11, 19)}</td>
-                                <td>${event.src_ip}</td>
-                                <td>${event.dest_ip}</td>
-                                <td><span style="font-weight: 700; color: var(--accent);">${event.proto}</span></td>
-                                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.message}</td>
-                                <td>
-                                    <span class="status-badge ${actionClass}" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
-                                        ${event.action}
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
-                        alertsBody.innerHTML += row;
-                    });
+                    if (data.recent_events && data.recent_events.length > 0) {
+                        let html = '';
+                        data.recent_events.forEach(event => {
+                            const action = (event.action || 'ALERT').toUpperCase();
+                            const actionClass = action.toLowerCase() === 'alert' ? 'badge-alert' : 'badge-drop';
+                            const timestamp = event.timestamp ? event.timestamp.substring(11, 19) : '--:--:--';
+                            html += `
+                                <tr data-action="${action.toLowerCase()}">
+                                    <td class="text-muted" style="font-size: 12px;">${timestamp}</td>
+                                    <td>${event.src_ip || 'N/A'}</td>
+                                    <td>${event.dest_ip || 'N/A'}</td>
+                                    <td><span style="font-weight: 700; color: var(--accent);">${event.proto || 'N/A'}</span></td>
+                                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${event.message}">${event.message || 'No message'}</td>
+                                    <td>
+                                        <span class="status-badge ${actionClass}" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
+                                            ${action}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        alertsBody.innerHTML = html;
+                    } else {
+                        alertsBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Monitoring for threats...</td></tr>';
+                    }
                     filterLogs();
                 }
 
@@ -1264,40 +1290,42 @@
 
         // Log Filtering & Search
         let currentFilter = 'all';
-        let currentSearchTerm = '';
 
         function filterLogs() {
+            const searchTerm = (document.getElementById('log-search')?.value || '').toLowerCase();
             const rows = document.querySelectorAll('#alerts-table-body tr');
+            
             rows.forEach(row => {
-                const actionCell = row.querySelector('td:last-child .status-badge');
-                if (!actionCell) return;
-                
-                const action = actionCell.innerText.toLowerCase().trim();
+                const action = row.getAttribute('data-action') || '';
                 const text = row.innerText.toLowerCase();
                 
                 const matchesFilter = currentFilter === 'all' || action === currentFilter;
-                const matchesSearch = text.includes(currentSearchTerm.toLowerCase());
+                const matchesSearch = text.includes(searchTerm);
                 
-                if (matchesFilter && matchesSearch) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = (matchesFilter && matchesSearch) ? '' : 'none';
             });
         }
 
         document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('filter-btn')) {
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
-                currentFilter = e.target.getAttribute('data-filter');
+            const filterBtn = e.target.closest('.filter-btn');
+            if (filterBtn) {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--text-main)';
+                });
+                
+                filterBtn.classList.add('active');
+                filterBtn.style.background = 'var(--accent)';
+                filterBtn.style.color = 'white';
+                
+                currentFilter = filterBtn.getAttribute('data-filter');
                 filterLogs();
             }
         });
 
         document.addEventListener('input', function(e) {
             if (e.target.id === 'log-search') {
-                currentSearchTerm = e.target.value;
                 filterLogs();
             }
         });

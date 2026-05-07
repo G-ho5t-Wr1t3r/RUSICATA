@@ -18,26 +18,32 @@ import threading
 # SURICATA INTERACTION CORE FUNCTIONS 
 
 def suricata_hot_reload():
-    # Hot reload using SIGUSR2. More robust check with pgrep.
+    # Attempt hot reload using SIGUSR2. Priority to original command style.
     try:
-        subprocess.run('pkill -USR2 -x suricata', shell=True, check=True)
-    except subprocess.CalledProcessError:
-        # If pkill fails, maybe suricata is not running, which is fine to ignore here
-        pass
-
-def _bg_reload():
-    subprocess.run(['systemctl','restart','suricata.service'])
+        # Original style: try pidof first
+        subprocess.run('kill -USR2 $(pidof suricata)', shell=True, check=True)
+    except Exception:
+        try:
+            # Fallback to pgrep if pidof fails or is missing
+            subprocess.run('kill -USR2 $(pgrep -x suricata)', shell=True, check=True)
+        except Exception:
+            # Last resort: pkill
+            try:
+                subprocess.run(['pkill', '-USR2', '-x', 'suricata'], check=True)
+            except Exception:
+                pass
 
 def suricata_deamon_reload():
-    threading.Thread(target=_bg_reload).start()
+    # Synchronous restart to ensure config is locked and loaded
+    subprocess.run(['systemctl', 'restart', 'suricata.service'], check=False)
 
 def load_suricata_config(name: str):
     file_path = f'{CONFIG_BASE_PATH}/{name}'
-    return yaml.safe_load(open(file_path, 'r'))
+    with open(file_path, 'r') as f:
+        return yaml.safe_load(f)
 
 def dump_suricata_config(data, name: str):
     file_path = f'{CONFIG_BASE_PATH}/{name}'
-    #yaml.dump(data,open(file_path,'w'))
     with open(file_path, 'w') as f:
         f.write(SURICATA_YAML_HEADER)
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
@@ -55,11 +61,17 @@ def remove_rule(http_rule_instance):
     param: http_rule_instance (see HttpRule model)
     '''
     file_path = f'{RULES_BASE_PATH}{http_rule_instance.service.name}.rules'
+    if not os.path.exists(file_path):
+        return
+        
     # Read file and filter lines
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    filtered_lines = [line for line in lines if f'sid:{http_rule_instance.sid};' not in line]
+    # Match exact sid to avoid partial matches
+    pattern = f'sid:{http_rule_instance.sid};'
+    filtered_lines = [line for line in lines if pattern not in line]
+    
     # Write filtered lines back to the file
     with open(file_path, 'w') as file:
         file.writelines(filtered_lines)
@@ -72,9 +84,8 @@ def insert_rule(http_rule_instance):
     file_path = f"{RULES_BASE_PATH}{http_rule_instance.service.name}.rules"
     # Check if the file exists
     if not os.path.exists(file_path):
-        # Create the file if it does not exist
         with open(file_path, "w") as file:
-            file.write("")  # Create an empty file
+            file.write("")
 
     with open(file_path, "a") as f:
         f.write(rulify(http_rule_instance))
@@ -95,27 +106,25 @@ class Service(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.pk:  # Check if the instance is being created (not updated)
+        is_new = not self.pk
+        if is_new:
             # Create a rule file
             file_path = RULES_BASE_PATH + self.name + ".rules"
-            with open(file_path, "w") as f:
-                f.write("")
+            if not os.path.exists(file_path):
+                with open(file_path, "w") as f:
+                    f.write("")
 
             # Load it inside yaml
             loaded_config = load_suricata_config("suricata.yaml")
-            loaded_config["rule-files"].append(self.name + ".rules")
+            if self.name + ".rules" not in loaded_config["rule-files"]:
+                loaded_config["rule-files"].append(self.name + ".rules")
 
-            # Save indented yaml file
-            with open("suricata.yaml", "w") as f:
-                yaml.dump(loaded_config, f, default_flow_style=False, indent=4)
+            # Dump updated suricata.yaml BEFORE reload
+            dump_suricata_config(loaded_config, "suricata.yaml")
 
             # Restart suricata to load new config
             suricata_deamon_reload()
 
-            # Dump updated suricata.yaml
-            dump_suricata_config(loaded_config, "suricata.yaml")
-
-        # Call the original save method to save the changes to the database
         super().save(*args, **kwargs)
 
 
