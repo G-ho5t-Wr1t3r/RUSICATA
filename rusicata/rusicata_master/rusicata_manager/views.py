@@ -12,7 +12,7 @@ def index(request):
 def dashboard_stats(request):
     # Check if Suricata is running
     try:
-        subprocess.run(['pidof', 'suricata'], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(['pgrep', '-x', 'suricata'], check=True, stdout=subprocess.DEVNULL)
         status = 'Active'
     except (subprocess.CalledProcessError, FileNotFoundError):
         status = 'Inactive'
@@ -65,7 +65,7 @@ def dashboard_stats(request):
 def dashboard(request):
     # Check if Suricata is running
     try:
-        subprocess.run(['pidof', 'suricata'], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(['pgrep', '-x', 'suricata'], check=True, stdout=subprocess.DEVNULL)
         status = 'Active'
     except (subprocess.CalledProcessError, FileNotFoundError):
         status = 'Inactive'
