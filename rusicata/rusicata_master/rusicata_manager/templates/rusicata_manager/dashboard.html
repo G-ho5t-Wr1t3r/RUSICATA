@@ -27,6 +27,7 @@
             --text-muted: #9ca3af;
             --border: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
+            --card-gradient: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(21, 22, 28, 0.7) 100%);
             
             /* Transitions */
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -39,6 +40,7 @@
             --text-muted: #4b5563;
             --border: rgba(0, 0, 0, 0.05);
             --glass-border: rgba(0, 0, 0, 0.1);
+            --card-gradient: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%);
         }
 
         * {
@@ -79,18 +81,30 @@
         .logo-area {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
         .logo-img {
             height: 40px;
-            /* Fallback if image missing */
             display: flex;
             align-items: center;
             font-weight: 700;
             font-size: 1.5rem;
             color: var(--accent);
         }
+
+        .system-info {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: rgba(0,0,0,0.1);
+            padding: 0.4rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .info-item i { color: var(--accent); margin-right: 4px; }
 
         .status-badge {
             display: flex;
@@ -102,6 +116,12 @@
             border-radius: 12px;
             font-size: 0.875rem;
             font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .status-badge.inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
         }
 
         .pulse {
@@ -110,6 +130,11 @@
             background-color: var(--success);
             border-radius: 50%;
             animation: pulse-animation 2s infinite;
+        }
+
+        .status-badge.inactive .pulse {
+            background-color: var(--danger);
+            animation: none;
         }
 
         @keyframes pulse-animation {
@@ -121,6 +146,14 @@
         .header-actions {
             display: flex;
             gap: 1rem;
+            align-items: center;
+        }
+
+        .refresh-countdown {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 140px;
+            text-align: right;
         }
 
         .btn {
@@ -195,7 +228,7 @@
 
         /* Config Card Special Style */
         .config-card {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(21, 22, 28, 0.7) 100%);
+            background: var(--card-gradient);
         }
 
         .config-list {
@@ -410,18 +443,29 @@
                     <img src="{% static 'Rusicata_commercial.png' %}" alt="Rusicata" height="40" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <span style="display:none;">RUSICATA IPS</span>
                 </div>
-                <div class="status-badge">
+                
+                <div class="system-info">
+                    <div class="info-item" title="RAM Usage">
+                        <i class="fas fa-memory"></i> <span id="ram-usage">...</span>
+                    </div>
+                    <div class="info-item" title="Disk Usage">
+                        <i class="fas fa-hdd"></i> <span id="disk-usage">...</span>
+                    </div>
+                </div>
+
+                <div class="status-badge" id="status-badge">
                     <div class="pulse"></div>
-                    <span>Suricata: Active</span>
+                    <span id="status-text">Suricata: Active</span>
                 </div>
             </div>
             
             <div class="header-actions">
+                <div class="refresh-countdown" id="refresh-timer">Refreshing in 10s...</div>
                 <button class="btn" onclick="toggleTheme()" id="theme-toggle-btn">
                     <i class="fas fa-moon"></i>
                     <span>Dark Mode</span>
                 </button>
-                <button class="btn" onclick="showToast('Exporting Report...')">
+                <button class="btn" onclick="showToast('Coming soon!')">
                     <i class="fas fa-file-export"></i>
                     <span>Export Report</span>
                 </button>
@@ -573,7 +617,12 @@
     <div class="modal-overlay" id="rules-modal-overlay">
         <div class="modal">
             <div class="card-header" style="margin-bottom: 2rem;">
-                <h2 class="card-title" id="modal-service-name">Service Rules</h2>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <h2 class="card-title" id="modal-service-name">Service Rules</h2>
+                    <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="showAddRuleFromModal()">
+                        <i class="fas fa-plus"></i> Add Rule
+                    </button>
+                </div>
                 <button class="action-btn" onclick="closeRulesModal()" style="font-size: 1.5rem;">&times;</button>
             </div>
             
@@ -595,8 +644,53 @@
 
             <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
                 <button class="btn" onclick="closeRulesModal()">Close</button>
-                <button class="btn btn-primary" onclick="showToast('Rule management is real-time!')">Info</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Rule Modal -->
+    <div class="modal-overlay" id="edit-rule-modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="card-header">
+                <h2 class="card-title">Edit Rule</h2>
+                <button class="action-btn" onclick="closeEditRuleModal()" style="font-size: 1.5rem;">&times;</button>
+            </div>
+            <form id="edit-rule-form" style="margin-top: 1.5rem;">
+                {% csrf_token %}
+                <input type="hidden" id="edit-rule-id">
+                <input type="hidden" id="edit-rule-type">
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Rule Message</label>
+                    <input type="text" id="edit-rule-message" name="message" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Action</label>
+                        <select id="edit-rule-action" name="action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                            <option value="alert">ALERT</option>
+                            <option value="drop">DROP</option>
+                            <option value="pass">PASS</option>
+                            <option value="reject">REJECT</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Protocol</label>
+                        <input type="text" id="edit-rule-protocol" name="protocol" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Content Pattern</label>
+                    <textarea id="edit-rule-content" name="content" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white; min-height: 80px;"></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn" onclick="closeEditRuleModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -628,7 +722,7 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast">
         <i class="fas fa-info-circle"></i>
-        <span id="toast-message">Coming Soon!</span>
+        <span id="toast-message">Coming soon!</span>
     </div>
 
     {{ stats|json_script:"stats-data" }}
@@ -746,41 +840,57 @@
         }
 
         // AJAX Update
-        async function refreshData() {
+        async function refreshData(isFullUpdate = true) {
             try {
                 const response = await fetch('{% url "dashboard_stats" %}');
                 const data = await response.json();
                 
-                // Update charts
-                actionsChart.data.labels = Object.keys(data.events_per_service);
-                actionsChart.data.datasets[0].data = Object.values(data.events_per_service);
-                actionsChart.update();
+                // Update System Info
+                document.getElementById('ram-usage').innerText = data.system_stats.ram;
+                document.getElementById('disk-usage').innerText = data.system_stats.disk;
 
-                protocolsChart.data.labels = Object.keys(data.stats.protocols);
-                protocolsChart.data.datasets[0].data = Object.values(data.stats.protocols);
-                protocolsChart.update();
+                // Update Status
+                const statusBadge = document.getElementById('status-badge');
+                const statusText = document.getElementById('status-text');
+                statusText.innerText = `Suricata: ${data.status}`;
+                if (data.status === 'Active') {
+                    statusBadge.classList.remove('inactive');
+                } else {
+                    statusBadge.classList.add('inactive');
+                }
 
-                // Update Alerts Table
-                const alertsBody = document.getElementById('alerts-table-body');
-                alertsBody.innerHTML = '';
-                data.recent_events.slice(0, 10).forEach(event => {
-                    const actionClass = event.action.toLowerCase() === 'alert' ? 'badge-alert' : 'badge-drop';
-                    const row = `
-                        <tr>
-                            <td class="text-muted" style="font-size: 12px;">${event.timestamp.substring(11, 19)}</td>
-                            <td>${event.src_ip}</td>
-                            <td>${event.dest_ip}</td>
-                            <td><span style="font-weight: 700; color: var(--accent);">${event.proto}</span></td>
-                            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.message}</td>
-                            <td>
-                                <span class="status-badge ${actionClass}" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
-                                    ${event.action}
-                                </span>
-                            </td>
-                        </tr>
-                    `;
-                    alertsBody.innerHTML += row;
-                });
+                if (isFullUpdate) {
+                    // Update charts
+                    actionsChart.data.labels = Object.keys(data.events_per_service);
+                    actionsChart.data.datasets[0].data = Object.values(data.events_per_service);
+                    actionsChart.update();
+
+                    protocolsChart.data.labels = Object.keys(data.stats.protocols);
+                    protocolsChart.data.datasets[0].data = Object.values(data.stats.protocols);
+                    protocolsChart.update();
+
+                    // Update Alerts Table
+                    const alertsBody = document.getElementById('alerts-table-body');
+                    alertsBody.innerHTML = '';
+                    data.recent_events.slice(0, 10).forEach(event => {
+                        const actionClass = event.action.toLowerCase() === 'alert' ? 'badge-alert' : 'badge-drop';
+                        const row = `
+                            <tr>
+                                <td class="text-muted" style="font-size: 12px;">${event.timestamp.substring(11, 19)}</td>
+                                <td>${event.src_ip}</td>
+                                <td>${event.dest_ip}</td>
+                                <td><span style="font-weight: 700; color: var(--accent);">${event.proto}</span></td>
+                                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${event.message}</td>
+                                <td>
+                                    <span class="status-badge ${actionClass}" style="padding: 0.25rem 0.75rem; border-radius: 8px;">
+                                        ${event.action}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                        alertsBody.innerHTML += row;
+                    });
+                }
 
             } catch (e) {
                 console.error("Refresh failed", e);
@@ -827,8 +937,8 @@
                             </td>
                             <td><span class="status-badge ${rule.action.toUpperCase() === 'DROP' ? 'badge-drop' : 'badge-alert'}" style="padding: 2px 8px;">${rule.action}</span></td>
                             <td>
-                                <button class="action-btn" onclick="showToast('Edit feature coming soon!')"><i class="fas fa-edit"></i></button>
-                                <button class="action-btn delete" onclick="deleteRuleAjax('${rule.type}', '${rule.id}')"><i class="fas fa-trash"></i></button>
+                                <button class="action-btn" onclick="openEditRuleModal('${rule.type}', '${rule.id}')"><i class="fas fa-pencil-alt"></i></button>
+                                <button class="action-btn delete" onclick="deleteRuleAjax('${rule.type}', '${rule.id}')"><i class="fas fa-trash-alt"></i></button>
                             </td>
                         </tr>
                     `;
@@ -870,12 +980,86 @@
             }
         }
 
+        // Edit Rule Logic
+        function openEditRuleModal(type, id) {
+            fetch(`/api/rule-detail/${type}/${id}/`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('edit-rule-id').value = data.id;
+                    document.getElementById('edit-rule-type').value = type;
+                    document.getElementById('edit-rule-message').value = data.message;
+                    document.getElementById('edit-rule-action').value = data.action.toLowerCase();
+                    document.getElementById('edit-rule-protocol').value = data.protocol || '';
+                    document.getElementById('edit-rule-content').value = data.content || '';
+                    
+                    document.getElementById('edit-rule-modal-overlay').classList.add('active');
+                });
+        }
+
+        function closeEditRuleModal() {
+            document.getElementById('edit-rule-modal-overlay').classList.remove('active');
+        }
+
+        document.getElementById('edit-rule-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-rule-id').value;
+            const type = document.getElementById('edit-rule-type').value;
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch(`/api/edit-rule/${type}/${id}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showToast("Rule updated successfully");
+                    closeEditRuleModal();
+                    // Refresh current modal rules
+                    const serviceName = document.getElementById('modal-service-name').innerText.replace('Rules for ', '');
+                    // We need the service ID to reload. Let's store it or just reload all.
+                    // For now, simpler to just close and let user re-open or implement a better way.
+                    // Actually, let's just update the row in the table.
+                    const row = document.getElementById(`rule-row-${type}-${id}`);
+                    row.querySelector('td:first-child').innerText = formData.get('message');
+                    row.querySelector('.status-badge').innerText = formData.get('action').toUpperCase();
+                    row.querySelector('.status-badge').className = `status-badge ${formData.get('action').toLowerCase() === 'drop' ? 'badge-drop' : 'badge-alert'}`;
+                }
+            } catch (e) {
+                showToast("Failed to update rule");
+            }
+        };
+
+        function showAddRuleFromModal() {
+            // Re-use the existing add-service-modal logic or redirect to the old rules page
+            // For a true SPA feel, we should have an "Add Rule" modal here.
+            showToast("Add Rule modal coming soon!");
+        }
+
+        // Countdown Timer
+        let countdown = 10;
+        const timerEl = document.getElementById('refresh-timer');
+
+        function startCountdown() {
+            setInterval(async () => {
+                countdown--;
+                if (countdown <= 0) {
+                    countdown = 10;
+                    await refreshData(true);
+                } else {
+                    await refreshData(false); // Quick update for system info
+                }
+                timerEl.innerText = `Refreshing in ${countdown}s...`;
+            }, 1000);
+        }
+
         // Lifecycle
         window.onload = () => {
             initCharts();
             updateChartsColors();
-            refreshData();
-            setInterval(refreshData, 10000);
+            refreshData(true);
+            startCountdown();
         };
     </script>
 </body>

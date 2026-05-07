@@ -197,6 +197,57 @@ def delete_rule(request, rule_type, rule_id):
     return redirect('service_rules', service_id=service_id)
 
 @login_required
+def rule_detail_api(request, rule_type, rule_id):
+    if rule_type == 'http':
+        rule = get_object_or_404(HttpRule, id=rule_id)
+        data = {
+            'id': rule.id,
+            'message': rule.message,
+            'action': rule.action,
+            'protocol': rule.protocol,
+            'request_method': rule.request_method,
+            'content': rule.content,
+            'content_location': rule.content_location,
+            'case_sensitive': rule.case_sensitive,
+        }
+    else:
+        rule = get_object_or_404(TransportLevelRule, id=rule_id)
+        data = {
+            'id': rule.id,
+            'message': rule.message,
+            'action': rule.action,
+            'protocol': rule.protocol,
+            'content': rule.content,
+            'flow_direction': rule.flow_direction,
+            'case_sensitive': rule.case_sensitive,
+        }
+    return JsonResponse(data)
+
+@login_required
+def edit_rule_api(request, rule_type, rule_id):
+    if request.method == 'POST':
+        if rule_type == 'http':
+            rule = get_object_or_404(HttpRule, id=rule_id)
+            rule.message = request.POST.get('message', rule.message)
+            rule.action = request.POST.get('action', rule.action)
+            rule.request_method = request.POST.get('request_method', rule.request_method)
+            rule.content = request.POST.get('content', rule.content)
+            rule.content_location = request.POST.get('content_location', rule.content_location)
+            rule.case_sensitive = request.POST.get('case_sensitive') == 'on'
+        else:
+            rule = get_object_or_404(TransportLevelRule, id=rule_id)
+            rule.message = request.POST.get('message', rule.message)
+            rule.action = request.POST.get('action', rule.action)
+            rule.protocol = request.POST.get('protocol', rule.protocol)
+            rule.content = request.POST.get('content', rule.content)
+            rule.flow_direction = request.POST.get('flow_direction', rule.flow_direction)
+            rule.case_sensitive = request.POST.get('case_sensitive') == 'on'
+        
+        rule.save()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+@login_required
 def add_service(request):
     if request.method == 'POST':
         name = request.POST.get('name')
