@@ -3,7 +3,7 @@
 # Setup per automatizzare il deploy e la run di rusicata.
 
 # COLORI
-RED="\e[31m" 
+RED="\e[31m"
 GRN="\e[32m"
 YLW="\e[33m"
 RST="\e[0m"
@@ -98,7 +98,7 @@ if pip install -r requirements.txt >&3 2>&4; then
 else
     EXIT_CODE=$?
     echo -e "${RED}Errore durante pip install (Codice: $EXIT_CODE).${RST}"
-    
+
     if pip install -r requirements.txt --break-system-packages >&3 2>&4; then
         echo -e "${GRN}Installazione FORZATA completata con successo nel venv.${RST}"
     else
@@ -120,6 +120,8 @@ if [ -n "$P6" ]; then sed -i "s/PLAYER_6 = .*/PLAYER_6 = '$P6'/g" "$SETTINGS_FIL
 
 grep -q "TEAM_ALLOWED_IPS" "$SETTINGS_FILE" || echo "TEAM_ALLOWED_IPS = ['127.0.0.1']" >> "$SETTINGS_FILE"
 
+rm rusicata_master/db.sqlite3 || true
+
 # SETTING DJANGO SUPERUSER
 export DJANGO_SUPERUSER_USERNAME="$DB_USER"
 export DJANGO_SUPERUSER_PASSWORD="$DB_PASS"
@@ -129,10 +131,17 @@ python3 rusicata_master/manage.py makemigrations >&3 2>&4
 python3 rusicata_master/manage.py migrate >&3 2>&4
 python3 rusicata_master/manage.py createsuperuser --no-input >&3 2>&4
 
-add-apt-repository ppa:oisf/suricata-stable -y >&3 2>&4
-apt update >&3 2>&4
-apt install suricata jq -y >&3 2>&4
-suricata --build-info >&3 2>&4
+if ! command -v suricata >/dev/null 2>&1; then
+    # Remove broken PPA traces
+    rm -f /etc/apt/sources.list.d/*oisf*.list >&3 2>&4 || true
+    rm -f /etc/apt/sources.list.d/*suricata*.list >&3 2>&4 || true
+    
+    apt update >&3 2>&4
+    apt install suricata jq -y >&3 2>&4
+    suricata --build-info >&3 2>&4
+else
+    echo "Suricata è già presente!"
+fi
 
 if find var/lib/suricata/rules > /dev/null 2>&1; then
     echo -e "${YLW}Eseguo il backup delle regole esistenti in /var/lib/suricata/rules/suricata.rules.old${RST}"
@@ -151,25 +160,25 @@ suricata -T -c /etc/suricata/suricata.yaml -v >&3 2>&4
 echo "Imposto i parametri di IPTABLES..."
 if iptables -I DOCKER-USER -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
     echo -e "${GRN}Docker ✔${RST}"
-else 
+else
     echo -e "${RED}Docker ✗${RST}"
 fi
 
 if iptables -I FORWARD -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
     echo -e "${GRN}Forward ✔${RST}"
-else 
+else
     echo -e "${RED}Forward ✗${RST}"
 fi
 
 if iptables -I INPUT -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
     echo -e "${GRN}Input ✔${RST}"
-else 
+else
     echo -e "${RED}Input ✗${RST}"
 fi
 
 if iptables -I OUTPUT -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
     echo -e "${GRN}Output ✔${RST}"
-else 
+else
     echo -e "${RED}Output ✗${RST}"
 fi
 
@@ -206,8 +215,9 @@ fi
 #nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > /dev/null 2>&1 &
 nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > full_logs.txt 2>&1 & # Run server, save logs
 echo "Rusicata is up!"
-echo $(ps aux grep suricata)
+echo $(ps aux | grep suricata)
 echo "Le regole sono in: /var/lib/suricata/rules/NAME.rules"
 
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 echo "Admin panel: http://$LOCAL_IP:8000/admin"
+echo "Base: http://$LOCAL_IP:8000/"

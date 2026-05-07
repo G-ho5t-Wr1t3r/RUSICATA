@@ -35,4 +35,7 @@ scp -i "$KEY_PATH" rusicata.tar.gz root@vm:/opt
 echo "Transferring setup via SCP"
 scp -i "$KEY_PATH" setup.sh root@vm:/opt/setup.sh
 
+echo "Transferring destroy_rusicata via SCP"
+scp -i "$KEY_PATH" destroy_rusicata.sh root@vm:/opt/destroy_rusicata.sh
+
 echo "Script execution completed"

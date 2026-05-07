@@ -1,1 +1,2 @@
 - [ ] Visualizzazione di anteprima regex quando si istanzia una regola (PERL)
+- [ ] Bisogna poter impostare tutte le regole possibili
