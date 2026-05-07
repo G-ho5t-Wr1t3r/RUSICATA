@@ -12,3 +12,6 @@
 - [x] That 10 seconds reload is horrible... If i'm doing something, I've to do in max 10 sec... I can't work like this...
 - [x] Clicking on the bar of the graph "Top Protocols" i want to be able to see the traffik, but mantaining the lightweight mode
 - [x] Puth the dark mode by default
+- [x] When i create a new entity from the admin panel it requiret too many time to save the entity
+- [x] I want to be able to navigate the eve.json seeing if the rule is applied or not
+- [x] I want to be able to stop and also to add and remove rules by the frontend

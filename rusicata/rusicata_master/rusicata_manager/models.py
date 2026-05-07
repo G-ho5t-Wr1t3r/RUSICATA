@@ -12,14 +12,21 @@ RULES_BASE_PATH = '/var/lib/suricata/rules/'
 CONFIG_BASE_PATH = '/etc/suricata/'
 SURICATA_YAML_HEADER = '%YAML 1.1\n---\n'
 
+import threading
+
 # ==========================================================================================================================
 # SURICATA INTERACTION CORE FUNCTIONS 
 
 def suricata_hot_reload():
+    # Hot reload is usually fast, but we can still thread it if needed.
+    # For now, let's keep it simple as it's just a signal.
     subprocess.run('kill -usr2 $(pidof suricata)',shell=True,text=True)
 
-def suricata_deamon_reload():
+def _bg_reload():
     subprocess.run(['systemctl','restart','suricata.service'])
+
+def suricata_deamon_reload():
+    threading.Thread(target=_bg_reload).start()
 
 def load_suricata_config(name: str):
     file_path = f'{CONFIG_BASE_PATH}/{name}'
@@ -32,9 +39,13 @@ def dump_suricata_config(data, name: str):
         f.write(SURICATA_YAML_HEADER)
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
 
-# alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; content:"pruppetta"; http_uri; sid:1000001; rev:1;)
-def rulify(http_rule_instance) -> str:
-    return f'{http_rule_instance.action} {http_rule_instance.protocol} any any -> any {http_rule_instance.service.port} (msg:"{http_rule_instance.message}";flow:to_server,established; content:"{http_rule_instance.request_method}";http_method; content:"{http_rule_instance.content}";{http_rule_instance.content_location};{"" if http_rule_instance.case_sensitive else "nocase;"}sid:{http_rule_instance.sid};rev:1;)\n'
+# Generic rulify that handles both HttpRule and TransportLevelRule
+def rulify(rule_instance) -> str:
+    if hasattr(rule_instance, 'request_method'): # It's an HttpRule
+        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{rule_instance.message}";flow:to_server,established; content:"{rule_instance.request_method}";http_method; content:"{rule_instance.content}";{rule_instance.content_location};{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
+    else: # It's a TransportLevelRule
+        flow = f'flow:{rule_instance.flow_direction},established;' if rule_instance.flow_direction != 'any' else ''
+        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{rule_instance.message}";{flow} content:"{rule_instance.content}";{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
 
 def remove_rule(http_rule_instance):
     '''
@@ -90,6 +101,10 @@ class Service(models.Model):
             # Load it inside yaml
             loaded_config = load_suricata_config("suricata.yaml")
             loaded_config["rule-files"].append(self.name + ".rules")
+
+            # Save indented yaml file
+            with open("suricata.yaml", "w") as f:
+                yaml.dump(loaded_config, f, default_flow_style=False, indent=4)
 
             # Restart suricata to load new config
             suricata_deamon_reload()

@@ -123,7 +123,8 @@ def get_recent_events(n=20, file_path=None):
                                 'dest_port': event.get('dest_port'),
                                 'proto': event.get('proto'),
                                 'message': event.get('alert', {}).get('signature', 'No message'),
-                                'action': event.get('alert', {}).get('action')
+                                'action': event.get('alert', {}).get('action'),
+                                'sid': event.get('alert', {}).get('signature_id')
                             }
                             events.append(alert_data)
                     except json.JSONDecodeError:
@@ -143,7 +144,8 @@ def get_recent_events(n=20, file_path=None):
                                 'dest_port': event.get('dest_port'),
                                 'proto': event.get('proto'),
                                 'message': event.get('alert', {}).get('signature', 'No message'),
-                                'action': event.get('alert', {}).get('action')
+                                'action': event.get('alert', {}).get('action'),
+                                'sid': event.get('alert', {}).get('signature_id')
                             }
                             events.append(alert_data)
                     except json.JSONDecodeError:

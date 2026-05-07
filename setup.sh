@@ -184,7 +184,7 @@ else
 fi
 
 sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -q 0 -D|' /usr/lib/systemd/system/suricata.service >&3 2>&4
-sed -i 's/^[[:space:]]*- suricata.rules/  - "*.rules"/' /etc/suricata/suricata.yaml
+#sed -i 's/^[[:space:]]*- suricata.rules/  - "*.rules"/' /etc/suricata/suricata.yaml
 
 if grep -A 1 "rule-files:" /etc/suricata/suricata.yaml >&3 2>&4; then
     echo "Successfully modified suricata.yaml"

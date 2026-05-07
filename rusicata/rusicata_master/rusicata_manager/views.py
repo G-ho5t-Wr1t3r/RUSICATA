@@ -95,3 +95,45 @@ def toggle_all_rules(request, service_id, action):
             rule.is_active = active
             rule.save()
     return redirect('service_rules', service_id=service_id)
+
+@login_required
+def add_http_rule(request, service_id):
+    if request.method == 'POST':
+        service = get_object_or_404(Service, id=service_id)
+        HttpRule.objects.create(
+            service=service,
+            protocol='http',
+            action=request.POST.get('action'),
+            message=request.POST.get('message'),
+            request_method=request.POST.get('request_method'),
+            content=request.POST.get('content'),
+            content_location=request.POST.get('content_location'),
+            case_sensitive=request.POST.get('case_sensitive') == 'on'
+        )
+    return redirect('service_rules', service_id=service_id)
+
+@login_required
+def add_transport_rule(request, service_id):
+    if request.method == 'POST':
+        service = get_object_or_404(Service, id=service_id)
+        TransportLevelRule.objects.create(
+            service=service,
+            protocol=request.POST.get('protocol'),
+            action=request.POST.get('action'),
+            message=request.POST.get('message'),
+            content=request.POST.get('content'),
+            flow_direction=request.POST.get('flow_direction'),
+            case_sensitive=request.POST.get('case_sensitive') == 'on'
+        )
+    return redirect('service_rules', service_id=service_id)
+
+@login_required
+def delete_rule(request, rule_type, rule_id):
+    if rule_type == 'http':
+        rule = get_object_or_404(HttpRule, id=rule_id)
+    else:
+        rule = get_object_or_404(TransportLevelRule, id=rule_id)
+    
+    service_id = rule.service.id
+    rule.delete()
+    return redirect('service_rules', service_id=service_id)

@@ -259,6 +259,7 @@
                         <th>Dest IP</th>
                         <th>Proto</th>
                         <th>Message</th>
+                        <th>SID</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -270,6 +271,7 @@
                         <td>{{ event.dest_ip }}</td>
                         <td>{{ event.proto }}</td>
                         <td>{{ event.message }}</td>
+                        <td>{{ event.sid }}</td>
                         <td>
                             <span class="status-badge {% if event.action|lower == 'alert' %}status-active{% elif event.action|lower == 'drop' or event.action|lower == 'reject' %}status-inactive{% endif %}" style="font-size: 0.8rem; padding: 2px 10px;">
                                 {{ event.action }}
@@ -278,7 +280,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" style="text-align: center;">No recent alerts found.</td>
+                        <td colspan="7" style="text-align: center;">No recent alerts found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -486,6 +488,7 @@
                                 <td>${event.dest_ip}</td>
                                 <td>${event.proto}</td>
                                 <td>${event.message}</td>
+                                <td>${event.sid}</td>
                                 <td>
                                     <span class="status-badge ${statusClass}" style="font-size: 0.8rem; padding: 2px 10px;">
                                         ${event.action}
@@ -495,7 +498,7 @@
                         `;
                     });
                 } else {
-                    html = '<tr><td colspan="6" style="text-align: center;">No recent alerts found.</td></tr>';
+                    html = '<tr><td colspan="7" style="text-align: center;">No recent alerts found.</td></tr>';
                 }
                 tbody.innerHTML = html;
                 filterTable(); // Re-apply current filters

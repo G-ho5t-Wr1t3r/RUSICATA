@@ -15,12 +15,23 @@
             --border-color: #ddd;
         }
 
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --border-color: #444;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
             padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         header {
@@ -41,6 +52,7 @@
             display: inline-block;
             cursor: pointer;
             border: none;
+            font-size: 0.9rem;
         }
 
         .btn-primary { background-color: var(--primary-color); }
@@ -69,16 +81,50 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        th { background-color: #f8f9fa; }
+        th { background-color: rgba(0,0,0,0.05); }
 
         .status-active { color: var(--success-color); font-weight: bold; }
         .status-inactive { color: var(--danger-color); font-weight: bold; }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label { font-weight: bold; font-size: 0.9rem; }
+
+        input, select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .add-rule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
     <header>
         <h1>Rules for {{ service.name }} (Port {{ service.port }})</h1>
-        <div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="theme-toggle" class="theme-toggle">🌙 Dark Mode</button>
             <a href="{% url 'dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
         </div>
     </header>
@@ -91,86 +137,204 @@
                 <a href="{% url 'toggle_all_rules' service.id 'disable' %}" class="btn btn-danger btn-sm">Disable All</a>
             </div>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>SID</th>
-                    <th>Action</th>
-                    <th>Method</th>
-                    <th>Content</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rule in http_rules %}
-                <tr>
-                    <td>{{ rule.sid }}</td>
-                    <td>{{ rule.action }}</td>
-                    <td>{{ rule.request_method }}</td>
-                    <td>{{ rule.content }}</td>
-                    <td>{{ rule.content_location }}</td>
-                    <td>
-                        <span class="{% if rule.is_active %}status-active{% else %}status-inactive{% endif %}">
-                            {{ rule.is_active|yesno:"Active,Inactive" }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{% url 'toggle_rule' 'http' rule.id %}" class="btn {% if rule.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm">
-                            {{ rule.is_active|yesno:"Disable,Enable" }}
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center;">No HTTP rules found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>SID</th>
+                        <th>Action</th>
+                        <th>Method</th>
+                        <th>Content</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in http_rules %}
+                    <tr>
+                        <td>{{ rule.sid }}</td>
+                        <td>{{ rule.action }}</td>
+                        <td>{{ rule.request_method }}</td>
+                        <td>{{ rule.content }}</td>
+                        <td>{{ rule.content_location }}</td>
+                        <td>
+                            <span class="{% if rule.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                {{ rule.is_active|yesno:"Active,Inactive" }}
+                            </span>
+                        </td>
+                        <td style="display: flex; gap: 5px;">
+                            <a href="{% url 'toggle_rule' 'http' rule.id %}" class="btn {% if rule.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm" style="width: 60px; text-align: center;">
+                                {{ rule.is_active|yesno:"Disable,Enable" }}
+                            </a>
+                            <a href="{% url 'delete_rule' 'http' rule.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center;">No HTTP rules found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="margin-top: 30px;">Add New HTTP Rule</h3>
+        <form action="{% url 'add_http_rule' service.id %}" method="post" class="add-rule-grid">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Action</label>
+                <select name="action">
+                    <option value="alert">Alert</option>
+                    <option value="drop">Drop</option>
+                    <option value="reject">Reject</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Method</label>
+                <select name="request_method">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <select name="content_location">
+                    <option value="http_uri">URI</option>
+                    <option value="http_client_body">Body</option>
+                    <option value="http_header">Header</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Content</label>
+                <input type="text" name="content" required placeholder="e.g. /admin">
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <input type="text" name="message" required placeholder="e.g. Admin access attempt">
+            </div>
+            <div class="form-group">
+                <label>Case Sensitive</label>
+                <input type="checkbox" name="case_sensitive">
+            </div>
+            <div class="form-group" style="justify-content: flex-end;">
+                <button type="submit" class="btn btn-success">Add HTTP Rule</button>
+            </div>
+        </form>
     </div>
 
     <div class="card">
         <h2>Transport Level Rules</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>SID</th>
-                    <th>Action</th>
-                    <th>Protocol</th>
-                    <th>Content</th>
-                    <th>Direction</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rule in transport_rules %}
-                <tr>
-                    <td>{{ rule.sid }}</td>
-                    <td>{{ rule.action }}</td>
-                    <td>{{ rule.protocol }}</td>
-                    <td>{{ rule.content }}</td>
-                    <td>{{ rule.flow_direction }}</td>
-                    <td>
-                        <span class="{% if rule.is_active %}status-active{% else %}status-inactive{% endif %}">
-                            {{ rule.is_active|yesno:"Active,Inactive" }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{% url 'toggle_rule' 'transport' rule.id %}" class="btn {% if rule.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm">
-                            {{ rule.is_active|yesno:"Disable,Enable" }}
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center;">No Transport Level rules found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>SID</th>
+                        <th>Action</th>
+                        <th>Protocol</th>
+                        <th>Content</th>
+                        <th>Direction</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in transport_rules %}
+                    <tr>
+                        <td>{{ rule.sid }}</td>
+                        <td>{{ rule.action }}</td>
+                        <td>{{ rule.protocol }}</td>
+                        <td>{{ rule.content }}</td>
+                        <td>{{ rule.flow_direction }}</td>
+                        <td>
+                            <span class="{% if rule.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                {{ rule.is_active|yesno:"Active,Inactive" }}
+                            </span>
+                        </td>
+                        <td style="display: flex; gap: 5px;">
+                            <a href="{% url 'toggle_rule' 'transport' rule.id %}" class="btn {% if rule.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm" style="width: 60px; text-align: center;">
+                                {{ rule.is_active|yesno:"Disable,Enable" }}
+                            </a>
+                            <a href="{% url 'delete_rule' 'transport' rule.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center;">No Transport Level rules found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="margin-top: 30px;">Add New Transport Rule</h3>
+        <form action="{% url 'add_transport_rule' service.id %}" method="post" class="add-rule-grid">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Action</label>
+                <select name="action">
+                    <option value="alert">Alert</option>
+                    <option value="drop">Drop</option>
+                    <option value="reject">Reject</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Protocol</label>
+                <select name="protocol">
+                    <option value="tcp">TCP</option>
+                    <option value="udp">UDP</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Direction</label>
+                <select name="flow_direction">
+                    <option value="to_server">To Server</option>
+                    <option value="to_client">To Client</option>
+                    <option value="any">Any</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Content</label>
+                <input type="text" name="content" required placeholder="e.g. suspicious_payload">
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <input type="text" name="message" required placeholder="e.g. Suspicious TCP payload">
+            </div>
+            <div class="form-group">
+                <label>Case Sensitive</label>
+                <input type="checkbox" name="case_sensitive">
+            </div>
+            <div class="form-group" style="justify-content: flex-end;">
+                <button type="submit" class="btn btn-success">Add Transport Rule</button>
+            </div>
+        </form>
     </div>
+
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+        
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️ Light Mode';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            let theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                themeToggle.textContent = '🌙 Dark Mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.textContent = '☀️ Light Mode';
+            }
+        });
+    </script>
 </body>
 </html>
