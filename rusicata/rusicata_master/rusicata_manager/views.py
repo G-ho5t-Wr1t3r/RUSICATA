@@ -10,12 +10,24 @@ def index(request):
 
 @login_required
 def dashboard_stats(request):
-    # Check if Suricata is running
+    # Check if Suricata is running - try systemctl first, then pgrep
+    status = 'Inactive'
     try:
-        subprocess.run(['pgrep', '-x', 'suricata'], check=True, stdout=subprocess.DEVNULL)
-        status = 'Active'
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        status = 'Inactive'
+        # Check with systemctl if available
+        res = subprocess.run(['systemctl', 'is-active', 'suricata'], capture_output=True, text=True)
+        if res.stdout.strip() == 'active':
+            status = 'Active'
+        else:
+            # Fallback to pgrep
+            subprocess.run(['pgrep', '-x', 'suricata'], check=True, stdout=subprocess.DEVNULL)
+            status = 'Active'
+    except Exception:
+        # Final fallback check with pgrep via shell
+        try:
+            subprocess.run('pgrep -x suricata', shell=True, check=True, stdout=subprocess.DEVNULL)
+            status = 'Active'
+        except Exception:
+            status = 'Inactive'
 
     stats = telemetry.get_stats()
     system_stats = telemetry.get_system_stats()

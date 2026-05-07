@@ -18,9 +18,12 @@ import threading
 # SURICATA INTERACTION CORE FUNCTIONS 
 
 def suricata_hot_reload():
-    # Hot reload is usually fast, but we can still thread it if needed.
-    # For now, let's keep it simple as it's just a signal.
-    subprocess.run('kill -usr2 $(pidof suricata)',shell=True,text=True)
+    # Hot reload using SIGUSR2. More robust check with pgrep.
+    try:
+        subprocess.run('pkill -USR2 -x suricata', shell=True, check=True)
+    except subprocess.CalledProcessError:
+        # If pkill fails, maybe suricata is not running, which is fine to ignore here
+        pass
 
 def _bg_reload():
     subprocess.run(['systemctl','restart','suricata.service'])
