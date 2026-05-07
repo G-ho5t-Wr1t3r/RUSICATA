@@ -545,7 +545,7 @@
                         <tr>
                             <th>Service Name</th>
                             <th>Port</th>
-                            <th>Rules Count</th>
+                            <th>Active Rules</th>
                             <th>Last Activity</th>
                             <th>Actions</th>
                         </tr>
@@ -555,7 +555,7 @@
                         <tr>
                             <td style="font-weight: 600;">{{ service.name }}</td>
                             <td><code style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">{{ service.port }}</code></td>
-                            <td>{{ service.httprule_set.count|add:service.transportlevelrule_set.count }}</td>
+                            <td>{{ service.active_rules }} of {{ service.total_rules }}</td>
                             <td class="text-muted">Just now</td>
                             <td>
                                 <button class="btn" style="padding: 0.4rem 0.8rem;" onclick="openRulesModal('{{ service.id }}', '{{ service.name }}')">
