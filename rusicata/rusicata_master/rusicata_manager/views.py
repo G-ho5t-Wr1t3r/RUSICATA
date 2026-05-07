@@ -72,7 +72,16 @@ def dashboard(request):
 
     stats = telemetry.get_stats()
     recent_events = telemetry.get_recent_events(n=20)
-    services = Service.objects.all()
+    services = Service.objects.prefetch_related('httprule_set', 'transportlevelrule_set').all()
+    
+    for service in services:
+        total_http = service.httprule_set.count()
+        active_http = service.httprule_set.filter(is_active=True).count()
+        total_transport = service.transportlevelrule_set.count()
+        active_transport = service.transportlevelrule_set.filter(is_active=True).count()
+        
+        service.total_rules = total_http + total_transport
+        service.active_rules = active_http + active_transport
     
     # Load basic suricata config for display
     try:
