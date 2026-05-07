@@ -13,5 +13,5 @@
 - [x] You've removed the dinamyc countodwn for the gorgeus refresh of before
 - [x] The gradient of suricata Config is too mutch, in light mode it crush my eyes
 - [x] Give my functinality back mantaining the current frontend layout and theme
-- [ ] Before it was possible to add a rule, there war a sort of prepared statement, give me it back
-- [ ] Redesign the login followng the actual frontend
+- [x] Before it was possible to add a rule, there war a sort of prepared statement, give me it back
+- [x] Redesign the login followng the actual frontend

@@ -166,20 +166,23 @@ class HttpRule(models.Model):
     def save(self, *args, **kwargs):
         if self.pk:  # Update
             remove_rule(self)
-
-        service_id = self.service.id
-        num_rules = HttpRule.objects.filter(service=self.service).count()
-        self.sid = (service_id * 100000) + num_rules + 1
-        # Call the original save method to save the changes to the database
+        else:
+            # Generate SID only for new rules
+            service_id = self.service.id
+            max_http = HttpRule.objects.filter(service=self.service).aggregate(models.Max('sid'))['sid__max'] or 0
+            max_transport = TransportLevelRule.objects.filter(service=self.service).aggregate(models.Max('sid'))['sid__max'] or 0
+            current_max = max(max_http, max_transport)
+            if current_max == 0:
+                self.sid = (service_id * 100000) + 1
+            else:
+                self.sid = current_max + 1
+        
         super().save(*args, **kwargs)
-
-        # Call the create_file function with the current instance
         insert_rule(self)
 
-        def delete(self, *args, **kwargs):
-            # Call the original delete method to delete the instance
-            remove_rule(self)
-            super().delete(*args, **kwargs)
+    def delete(self, *args, **kwargs):
+        remove_rule(self)
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"{self.service.name}: {self.action} : {self.request_method} : {self.content_location} : {self.content}"
@@ -189,13 +192,12 @@ class HttpRule(models.Model):
 def pre_delete_callback(sender, instance, using, **kwargs):
     """
     This is a signal receiver integrated in Django.
-    Why? It makes possible to execute some custom logic before removing a rule.
-    Clean the file system removing fisically the Suricata rule from .rules file.
-    Runs automatically in a transparent way before deleting HttpRule model from the db. 
-    With the @receiver(pre_delete, sender=HttpRule) decorator, Django auto-invoke for every deleting action on that model.
     """
     print(f"Deleting instance with id {instance.sid}")
-    remove_rule(instance)
+    try:
+        remove_rule(instance)
+    except Exception:
+        pass
 
 
 class TransportLevelRule(models.Model):
@@ -231,54 +233,37 @@ class TransportLevelRule(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        try:
-            if self.pk:
-                # Update existing rule logic
-                print(f"Updating transport rule: {self.pk}")
-                remove_rule(self)
-
-            # Calculate the new SID
+        if self.pk:
+            remove_rule(self)
+        else:
+            # Generate SID only for new rules
             service_id = self.service.id
-            num_rules = TransportLevelRule.objects.filter(service=self.service).count()
-            self.sid = (service_id * 100000) + num_rules + 1
+            max_http = HttpRule.objects.filter(service=self.service).aggregate(models.Max('sid'))['sid__max'] or 0
+            max_transport = TransportLevelRule.objects.filter(service=self.service).aggregate(models.Max('sid'))['sid__max'] or 0
+            current_max = max(max_http, max_transport)
+            if current_max == 0:
+                self.sid = (service_id * 100000) + 1
+            else:
+                self.sid = current_max + 1
 
-            # Save into database
-            super().save(*args, **kwargs)
-
-            # Insert physical rule
-            print(f"Inserting transport rule: {self.sid}")
-            insert_rule(self)
-
-        except Exception as e:
-            # Handle save exceptions
-            print(f"Error during save: {e}")
+        super().save(*args, **kwargs)
+        insert_rule(self)
 
 
     def delete(self, *args, **kwargs):
-        try:            
-            # Remove physical rule
-            print(f"Deleting transport rule: {self.sid}")
-            remove_rule(self)
-            
-            # Delete from database
-            super().delete(*args, **kwargs)
-            
-        except Exception as e:
-            # Handle delete exceptions
-            print(f"Error during delete: {e}")
+        remove_rule(self)
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f'{self.service.name}: {self.action} : {self.protocol.upper()} : {self.flow_direction} : {self.content}'
 
 @receiver(pre_delete, sender=TransportLevelRule)
 def pre_delete_callback(sender, instance, using, **kwargs):
-    # Triggered before deleting
     print(f"Pre-delete signal: {instance.sid}")
     try:
         remove_rule(instance)
-    except Exception as e:
-        # Handle signal exceptions
-        print(f"Error in pre_delete: {e}")
+    except Exception:
+        pass
 
 
 class GlobalRule(models.Model):
