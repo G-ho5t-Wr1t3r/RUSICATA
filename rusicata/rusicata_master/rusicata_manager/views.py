@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 import subprocess
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -6,6 +7,24 @@ from .models import Service, HttpRule, TransportLevelRule, load_suricata_config
 
 def index(request):
     return render(request, 'rusicata_manager/index.html')
+
+@login_required
+def dashboard_stats(request):
+    # Check if Suricata is running
+    try:
+        subprocess.run(['pidof', 'suricata'], check=True, stdout=subprocess.DEVNULL)
+        status = 'Active'
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        status = 'Inactive'
+
+    stats = telemetry.get_stats()
+    recent_events = telemetry.get_recent_events(n=20)
+    
+    return JsonResponse({
+        'status': status,
+        'stats': stats,
+        'recent_events': recent_events,
+    })
 
 @login_required
 def dashboard(request):

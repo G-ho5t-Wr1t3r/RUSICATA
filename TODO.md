@@ -8,3 +8,7 @@
 - [x] Non voglio vedere solo gli alert, ma dei filtri rapidi (alert, reject ecc)
 - [x] Possibilità di creare globalmente una stringa o una regex
 - [x] Il countdown è statico, dice solo: Auto-refreshing every 10 seconds... Mi paicerebbe un countdown che dice Auto-refreshing in: dinamico
+
+- [x] That 10 seconds reload is horrible... If i'm doing something, I've to do in max 10 sec... I can't work like this...
+- [x] Clicking on the bar of the graph "Top Protocols" i want to be able to see the traffik, but mantaining the lightweight mode
+- [x] Puth the dark mode by default

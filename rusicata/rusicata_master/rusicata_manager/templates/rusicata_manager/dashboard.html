@@ -293,11 +293,19 @@
     <script>
         // Theme Management
         const themeToggle = document.getElementById('theme-toggle');
-        const currentTheme = localStorage.getItem('theme') || 'light';
+        let currentTheme = localStorage.getItem('theme');
         
+        // Default to dark if not set
+        if (!currentTheme) {
+            currentTheme = 'dark';
+        }
+
         if (currentTheme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
             themeToggle.textContent = '☀️ Light Mode';
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            themeToggle.textContent = '🌙 Dark Mode';
         }
 
         themeToggle.addEventListener('click', () => {
@@ -311,22 +319,43 @@
                 localStorage.setItem('theme', 'dark');
                 themeToggle.textContent = '☀️ Light Mode';
             }
+            // Update charts colors on theme change
+            updateChartsColors();
         });
 
+        function updateChartsColors() {
+            const textColor = getComputedStyle(document.body).getPropertyValue('--text-color');
+            const borderColor = getComputedStyle(document.body).getPropertyValue('--border-color');
+            
+            [actionsChart, protocolsChart].forEach(chart => {
+                if (chart.options.plugins.legend.labels) {
+                    chart.options.plugins.legend.labels.color = textColor;
+                }
+                if (chart.options.scales) {
+                    if (chart.options.scales.x) {
+                        chart.options.scales.x.grid.color = borderColor;
+                        chart.options.scales.x.ticks.color = textColor;
+                    }
+                    if (chart.options.scales.y) {
+                        chart.options.scales.y.grid.color = borderColor;
+                        chart.options.scales.y.ticks.color = textColor;
+                    }
+                }
+                chart.update();
+            });
+        }
+
         // Data from Django
-        const statsData = JSON.parse(document.getElementById('stats-data').textContent);
+        let statsData = JSON.parse(document.getElementById('stats-data').textContent);
 
         // Actions Chart
         const actionsCtx = document.getElementById('actionsChart').getContext('2d');
-        const actionsLabels = Object.keys(statsData.actions);
-        const actionsValues = Object.values(statsData.actions);
-
         const actionsChart = new Chart(actionsCtx, {
             type: 'pie',
             data: {
-                labels: actionsLabels,
+                labels: Object.keys(statsData.actions),
                 datasets: [{
-                    data: actionsValues,
+                    data: Object.values(statsData.actions),
                     backgroundColor: [
                         '#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6'
                     ]
@@ -347,16 +376,13 @@
 
         // Protocols Chart
         const protocolsCtx = document.getElementById('protocolsChart').getContext('2d');
-        const protocolsLabels = Object.keys(statsData.protocols);
-        const protocolsValues = Object.values(statsData.protocols);
-
         const protocolsChart = new Chart(protocolsCtx, {
             type: 'bar',
             data: {
-                labels: protocolsLabels,
+                labels: Object.keys(statsData.protocols),
                 datasets: [{
                     label: 'Count',
-                    data: protocolsValues,
+                    data: Object.values(statsData.protocols),
                     backgroundColor: '#3498db'
                 }]
             },
@@ -380,6 +406,14 @@
                             color: getComputedStyle(document.body).getPropertyValue('--text-color')
                         }
                     }
+                },
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const protocol = protocolsChart.data.labels[index];
+                        document.getElementById('search-input').value = protocol;
+                        filterTable();
+                    }
                 }
             }
         });
@@ -387,11 +421,11 @@
         // Filtering Logic
         const filterBtns = document.querySelectorAll('.filter-btn');
         const searchInput = document.getElementById('search-input');
-        const rows = document.querySelectorAll('.alert-row');
 
         function filterTable() {
             const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
             const searchText = searchInput.value.toLowerCase();
+            const rows = document.querySelectorAll('.alert-row');
 
             rows.forEach(row => {
                 const action = row.dataset.action;
@@ -417,18 +451,71 @@
 
         searchInput.addEventListener('input', filterTable);
 
+        // AJAX Update Function
+        async function updateDashboard() {
+            try {
+                const response = await fetch('{% url "dashboard_stats" %}');
+                const data = await response.json();
+                
+                // Update Status Badge
+                const statusBadge = document.querySelector('.status-badge');
+                statusBadge.textContent = data.status;
+                statusBadge.className = `status-badge ${data.status === 'Active' ? 'status-active' : 'status-inactive'}`;
+
+                // Update Actions Chart
+                actionsChart.data.labels = Object.keys(data.stats.actions);
+                actionsChart.data.datasets[0].data = Object.values(data.stats.actions);
+                actionsChart.update();
+
+                // Update Protocols Chart
+                protocolsChart.data.labels = Object.keys(data.stats.protocols);
+                protocolsChart.data.datasets[0].data = Object.values(data.stats.protocols);
+                protocolsChart.update();
+
+                // Update Alerts Table
+                const tbody = document.querySelector('#alerts-table tbody');
+                let html = '';
+                if (data.recent_events.length > 0) {
+                    data.recent_events.forEach(event => {
+                        const actionLower = event.action.toLowerCase();
+                        const statusClass = (actionLower === 'alert') ? 'status-active' : ((actionLower === 'drop' || actionLower === 'reject') ? 'status-inactive' : '');
+                        html += `
+                            <tr class="alert-row" data-action="${actionLower}">
+                                <td>${event.timestamp}</td>
+                                <td>${event.src_ip}</td>
+                                <td>${event.dest_ip}</td>
+                                <td>${event.proto}</td>
+                                <td>${event.message}</td>
+                                <td>
+                                    <span class="status-badge ${statusClass}" style="font-size: 0.8rem; padding: 2px 10px;">
+                                        ${event.action}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    html = '<tr><td colspan="6" style="text-align: center;">No recent alerts found.</td></tr>';
+                }
+                tbody.innerHTML = html;
+                filterTable(); // Re-apply current filters
+
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+            }
+        }
+
         // Dynamic Countdown and Auto-refresh
         let timeLeft = 10;
         const timerElement = document.getElementById('refresh-timer');
         
-        const countdown = setInterval(function() {
+        setInterval(async function() {
             timeLeft--;
             if (timeLeft <= 0) {
-                clearInterval(countdown);
-                location.reload();
-            } else {
-                timerElement.textContent = `Auto-refreshing in ${timeLeft} seconds...`;
+                timeLeft = 10;
+                await updateDashboard();
             }
+            timerElement.textContent = `Auto-refreshing in ${timeLeft} seconds...`;
         }, 1000);
     </script>
 </body>
