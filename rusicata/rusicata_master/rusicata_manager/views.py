@@ -164,6 +164,8 @@ def add_http_rule(request, service_id):
             content_location=request.POST.get('content_location'),
             case_sensitive=request.POST.get('case_sensitive') == 'on'
         )
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+            return JsonResponse({'status': 'success'})
     return redirect('service_rules', service_id=service_id)
 
 @login_required
@@ -179,6 +181,8 @@ def add_transport_rule(request, service_id):
             flow_direction=request.POST.get('flow_direction'),
             case_sensitive=request.POST.get('case_sensitive') == 'on'
         )
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+            return JsonResponse({'status': 'success'})
     return redirect('service_rules', service_id=service_id)
 
 @login_required

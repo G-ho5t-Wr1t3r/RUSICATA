@@ -1,95 +1,250 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Rusicata Dashboard</title>
+    <title>Rusicata IPS | Login</title>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
+        :root {
+            --bg-main: #0b0c10;
+            --bg-card: rgba(21, 22, 28, 0.7);
+            --accent: #7c3aed;
+            --accent-glow: rgba(124, 58, 237, 0.2);
+            --danger: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme='light'] {
+            --bg-main: #f9fafb;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --border: rgba(0, 0, 0, 0.05);
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
+
+        /* Glass Background Orbs */
+        .orb {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.2;
+        }
+
+        .orb-1 { top: -10%; left: -10%; }
+        .orb-2 { bottom: -10%; right: -10%; }
+
         .login-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 400px;
-        }
-        h2 {
-            margin-top: 0;
-            color: #333;
+            max-width: 450px;
+            padding: 2.5rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             text-align: center;
         }
-        .form-group {
-            margin-bottom: 1rem;
+
+        .logo-area {
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
         }
+
+        .logo-img {
+            font-weight: 800;
+            font-size: 2rem;
+            color: var(--accent);
+            letter-spacing: -1px;
+        }
+
+        h2 { font-size: 1.25rem; font-weight: 500; color: var(--text-muted); margin-bottom: 2rem; }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
         label {
             display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
             margin-bottom: 0.5rem;
-            color: #666;
+            margin-left: 0.5rem;
         }
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+
+        .input-wrapper {
+            position: relative;
         }
-        button {
+
+        .input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        input {
             width: 100%;
-            padding: 0.75rem;
-            background-color: #007bff;
+            padding: 0.875rem 1rem 0.875rem 2.8rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: white;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        [data-theme='light'] input { background: rgba(0, 0, 0, 0.05); color: #111827; }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 1rem;
+            background: var(--accent);
             color: white;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            border-radius: 12px;
             font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
         }
-        button:hover {
-            background-color: #0056b3;
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px var(--accent-glow);
+            filter: brightness(1.1);
         }
+
         .error-message {
-            color: #d9534f;
-            background-color: #f2dede;
-            border: 1px solid #ebccd1;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
             padding: 0.75rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            text-align: center;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
+
+        .theme-toggle {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
     </style>
 </head>
 <body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </button>
+
     <div class="login-container">
-        <h2>Rusicata Login</h2>
-        
+        <div class="logo-area">
+            <div class="logo-img">
+                <img src="{% static 'Rusicata_commercial.png' %}" alt="RUSICATA" height="50" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <span style="display:none;">RUSICATA</span>
+            </div>
+            <h2>Secure Dashboard Access</h2>
+        </div>
+
         {% if form.errors %}
             <div class="error-message">
-                Nome utente o password non corretti.
+                <i class="fas fa-exclamation-circle"></i> Invalid username or password.
             </div>
         {% endif %}
 
         <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
             <div class="form-group">
-                <label for="id_username">Nome Utente</label>
-                <input type="text" name="username" id="id_username" required autofocus>
+                <label for="id_username">Username</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="username" id="id_username" required autofocus placeholder="Enter your username">
+                </div>
             </div>
             <div class="form-group">
                 <label for="id_password">Password</label>
-                <input type="password" name="password" id="id_password" required>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" id="id_password" required placeholder="Enter your password">
+                </div>
             </div>
-            <button type="submit">Accedi</button>
+            <button type="submit" class="btn-login">Sign In</button>
             <input type="hidden" name="next" value="{{ next }}">
         </form>
     </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.querySelector('#theme-toggle i');
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.setAttribute('data-theme', 'light');
+                icon.className = 'fas fa-sun';
+                localStorage.setItem('rusicata-theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                icon.className = 'fas fa-moon';
+                localStorage.setItem('rusicata-theme', 'dark');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('rusicata-theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            if (savedTheme === 'light') document.querySelector('#theme-toggle i').className = 'fas fa-sun';
+        }
+    </script>
 </body>
 </html>
