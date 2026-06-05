@@ -70,3 +70,4 @@ Lo script `setup.sh` automatizza le seguenti operazioni:
 - Riavvio Suricata: `sudo systemctl restart suricata`
 - Monitoraggio Log: `tail -f /var/log/suricata/eve.json | jq`
 - Controllo Stato: `suricatasc -c reload-rules` (se il socket Unix è attivo).
+
