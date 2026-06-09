@@ -34,8 +34,9 @@ def suricata_hot_reload():
                 pass
 
 def suricata_deamon_reload():
-    # Synchronous restart to ensure config is locked and loaded
-    subprocess.run(['systemctl', 'restart', 'suricata.service'], check=False)
+    # Asynchronous restart to avoid blocking the main thread (responsive frontend)
+    thread = threading.Thread(target=lambda: subprocess.run(['systemctl', 'restart', 'suricata.service'], check=False))
+    thread.start()
 
 def load_suricata_config(name: str):
     file_path = f'{CONFIG_BASE_PATH}/{name}'
@@ -50,11 +51,14 @@ def dump_suricata_config(data, name: str):
 
 # Generic rulify that handles both HttpRule and TransportLevelRule
 def rulify(rule_instance) -> str:
+    message = rule_instance.message or ""
+    content = rule_instance.content or ""
+    
     if hasattr(rule_instance, 'request_method'): # It's an HttpRule
-        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{rule_instance.message}";flow:to_server,established; content:"{rule_instance.request_method}";http_method; content:"{rule_instance.content}";{rule_instance.content_location};{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
+        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{message}";flow:to_server,established; content:"{rule_instance.request_method}";http_method; content:"{content}";{rule_instance.content_location};{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
     else: # It's a TransportLevelRule
         flow = f'flow:{rule_instance.flow_direction},established;' if rule_instance.flow_direction != 'any' else ''
-        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{rule_instance.message}";{flow} content:"{rule_instance.content}";{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
+        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{message}";{flow} content:"{content}";{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
 
 def remove_rule(http_rule_instance):
     '''
@@ -96,7 +100,7 @@ def insert_rule(http_rule_instance):
 
 # A service has a port, a name and a list of rules associated
 class Service(models.Model):
-    name = models.CharField(max_length=200, help_text="Nome del Service")
+    name = models.CharField(max_length=200, unique=True, help_text="Nome del Service")
     port = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(65535)],
         help_text="Porta su cui runna (non interna di docker)",
@@ -122,10 +126,11 @@ class Service(models.Model):
             # Dump updated suricata.yaml BEFORE reload
             dump_suricata_config(loaded_config, "suricata.yaml")
 
-            # Restart suricata to load new config
-            suricata_deamon_reload()
-
         super().save(*args, **kwargs)
+        
+        if is_new:
+            # Restart suricata to load new config (after DB commit)
+            suricata_deamon_reload()
 
 
 # alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; content:"pruppetta"; http_uri; sid:1000001; rev:1;)

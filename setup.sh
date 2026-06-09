@@ -18,7 +18,7 @@ usage() {
     echo "  -a <IP>       Set allowed IP (default: 10.254.0.1)"
     echo "  -u <user>     Django superuser username (default: root)"
     echo "  -p <pass>     Django superuser password (default: root)"
-    echo "  -d <pass>     Django debug mode !!! INSECURE KEY !!! (default: False)"
+    echo "  -d <debug>     Django debug mode !!! INSECURE KEY !!! (default: False)"
     echo "  -v, --verbose Show all commands output"
     echo ""
     exit 1

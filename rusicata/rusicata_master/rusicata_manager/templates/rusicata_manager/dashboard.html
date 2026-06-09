@@ -678,7 +678,7 @@
                 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Rule Message</label>
-                    <input type="text" id="edit-rule-message" name="message" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" id="edit-rule-message" name="message" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -730,7 +730,7 @@
                 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Message</label>
-                    <input type="text" name="message" required placeholder="e.g. Admin access attempt" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="message" placeholder="e.g. Admin access attempt" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -773,7 +773,7 @@
 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Content Pattern</label>
-                    <input type="text" name="content" required placeholder="e.g. /admin" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="content" placeholder="e.g. /admin" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
@@ -789,7 +789,7 @@
                 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Message</label>
-                    <input type="text" name="message" required placeholder="e.g. Suspicious TCP payload" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="message" placeholder="e.g. Suspicious TCP payload" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -830,7 +830,7 @@
 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Content Pattern</label>
-                    <input type="text" name="content" required placeholder="e.g. suspicious_payload" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="content" placeholder="e.g. suspicious_payload" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
@@ -848,7 +848,7 @@
                 <h2 class="card-title">Add New Service</h2>
                 <button class="action-btn" onclick="closeAddServiceModal()" style="font-size: 1.5rem;">&times;</button>
             </div>
-            <form action="{% url 'add_service' %}" method="POST" style="margin-top: 1.5rem;">
+            <form action="{% url 'add_service' %}" method="POST" style="margin-top: 1.5rem;" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').innerText='Creating...';">
                 {% csrf_token %}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Service Name</label>

@@ -278,5 +278,7 @@ def add_service(request):
         name = request.POST.get('name')
         port = request.POST.get('port')
         if name and port:
-            Service.objects.create(name=name, port=port)
+            # Manual check to prevent duplicates if DB unique constraint is not yet migrated
+            if not Service.objects.filter(name=name).exists():
+                Service.objects.create(name=name, port=port)
     return redirect('dashboard')
