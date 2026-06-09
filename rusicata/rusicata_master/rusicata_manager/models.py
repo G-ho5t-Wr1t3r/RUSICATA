@@ -160,16 +160,26 @@ class HttpRule(models.Model):
     action = models.CharField(
         max_length=10, choices=ACTIONS, help_text="Azione da eseguire."
     )
-    message = models.CharField(max_length=1000, help_text="Messaggio (qualsiasi).")
+    message = models.CharField(
+        max_length=1000, 
+        help_text="Messaggio (qualsiasi).", 
+        null=True, 
+        blank=True
+    )
     request_method = models.CharField(
         max_length=10, choices=REQUEST_METHODS, help_text="Metodo sul quale agire."
     )
     content = models.CharField(
-        max_length=1000, help_text="Contenuto da bloccare ('TRIGGER')"
+        max_length=1000, 
+        help_text="Contenuto da bloccare ('TRIGGER')",
+        null=True,
+        blank=True
     )
     case_sensitive = models.BooleanField(default=False)
     content_location = models.CharField(
-        max_length=20, choices=LOCATIONS, help_text="Dove si trova il content"
+        max_length=20, 
+        choices=LOCATIONS, 
+        help_text="Dove si trova il content"
     )
     is_active = models.BooleanField(
         default=True, help_text="Indica se la regola è attiva in Suricata"
@@ -231,8 +241,18 @@ class TransportLevelRule(models.Model):
     action = models.CharField(
         max_length=10, choices=ACTIONS, help_text="Action to execute."
     )
-    message = models.CharField(max_length=1000, help_text="Rule alert message.")
-    content = models.CharField(max_length=1000, help_text="Trigger payload content.")
+    message = models.CharField(
+        max_length=1000, 
+        help_text="Rule alert message.",
+        null=True,
+        blank=True
+    )
+    content = models.CharField(
+        max_length=1000, 
+        help_text="Trigger payload content.",
+        null=True,
+        blank=True
+    )
     case_sensitive = models.BooleanField(default=False)
     flow_direction = models.CharField(
         max_length=20,

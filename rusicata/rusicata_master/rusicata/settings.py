@@ -19,25 +19,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-j2rn%-5@@7^+$)j^#(=xpr+#yl!l^-8vgx!%8fw8%9j^f!b_!t'
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ============================
-# MODIFY THIS:
-PLAYER_1 = '0.0.0.0'
-PLAYER_2 = '0.0.0.0'
-PLAYER_3 = '0.0.0.0'
-PLAYER_4 = '0.0.0.0'   
-PLAYER_5 = '0.0.0.0'
-PLAYER_6 = '0.0.0.0'
-# ============================
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-j2rn%-5@@7^+$)j^#(=xpr+#yl!l^-8vgx!%8fw8%9j^f!b_!t' if DEBUG else '-YZQRA6wuAUf9U07Kk68o1xEKF94Fm-u01Sg0yZ9mSq7UziNSs1HqCyhw2zYCGy1dHM' # Generated with: python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 
-ALLOWED_HOSTS = ['*']
-TEAM_ALLOWED_IPS = ['127.0.0.1', PLAYER_1, PLAYER_2, PLAYER_3, PLAYER_4, PLAYER_5, PLAYER_6]
-
+ALLOWED_HOSTS = ['*'] # Allow all hosts for VPN environment; change in production
+TEAM_ALLOWED_IPS = ['127.0.0.1']
 
 # Application definition
 
@@ -52,7 +41,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'rusicata_manager.middleware.TeamIPWhitelistMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

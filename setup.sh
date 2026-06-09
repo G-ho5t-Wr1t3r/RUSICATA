@@ -15,25 +15,21 @@ usage() {
     echo -e "${YLW}Usage: $0 [-p1 IP] ... [-p6 IP] [-u USER] [-p PASS] [-v]${RST}"
     echo "Options:"
     echo "  -h, --help    Show this help message"
-    echo "  -v, --verbose Show all commands output"
-    echo "  -p1 <IP>      Set IP for Player 1"
-    echo "  -p2 <IP>      Set IP for Player 2"
-    echo "  -p3 <IP>      Set IP for Player 3"
-    echo "  -p4 <IP>      Set IP for Player 4"
-    echo "  -p5 <IP>      Set IP for Player 5"
-    echo "  -p6 <IP>      Set IP for Player 6"
+    echo "  -a <IP>       Set allowed IP (default: 10.254.0.1)"
     echo "  -u <user>     Django superuser username (default: root)"
     echo "  -p <pass>     Django superuser password (default: root)"
+    echo "  -d <pass>     Django debug mode !!! INSECURE KEY !!! (default: False)"
+    echo "  -v, --verbose Show all commands output"
     echo ""
-    echo "Provide at least one parameter."
     exit 1
 }
 
 # Default superuser credentials
 DB_USER="root"
 DB_PASS="root"
+IP_HOST="10.254.0.1"
+DEBUG=false
 
-PARAM_PASSED=false
 VERBOSE=false
 
 # Parsing argomenti a riga di comando
@@ -41,24 +37,16 @@ while [[ "$#" -gt 0 ]]; do
     case $1 in
         -h|--help) usage ;;
         -v|--verbose) VERBOSE=true; PARAM_PASSED=true ;;
-        -p1) P1="$2"; PARAM_PASSED=true; shift ;;
-        -p2) P2="$2"; PARAM_PASSED=true; shift ;;
-        -p3) P3="$2"; PARAM_PASSED=true; shift ;;
-        -p4) P4="$2"; PARAM_PASSED=true; shift ;;
-        -p5) P5="$2"; PARAM_PASSED=true; shift ;;
-        -p6) P6="$2"; PARAM_PASSED=true; shift ;;
-        -u) DB_USER="$2"; PARAM_PASSED=true; shift ;;
-        -p) DB_PASS="$2"; PARAM_PASSED=true; shift ;;
+        -a) IP_HOST="$2"; shift ;;
+        -u) DB_USER="$2"; shift ;;
+        -p) DB_PASS="$2"; shift ;;
+        -d) DEBUG="$2"; shift ;;
         *) echo -e "${RED}Unknown parameter: $1${RST}"; usage ;;
     esac
     shift
 done
 
-# Verifica che almeno un parametro sia stato passato
-if [ "$PARAM_PASSED" = false ]; then
-    echo -e "${RED}Error: No parameters provided.${RST}"
-    usage
-fi
+echo -e "${GRN}Starting with username: $DB_USER, password: $DB_PASS, allowed IP: $IP_HOST${RST}"
 
 if [ "$VERBOSE" = true ]; then
     exec 3>&1 4>&2
@@ -108,17 +96,14 @@ else
     fi
 fi
 
+if [ "$DEBUG" = true ]; then
+    sed -i "s/DEBUG = .*/DEBUG = True/g" "$SETTINGS_FILE" >&3 2>&4
+fi
+
 SETTINGS_FILE=$(find . -name "settings.py" | head -n 1)
 sed -i "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['*']/g" "$SETTINGS_FILE" >&3 2>&4
 
-if [ -n "$P1" ]; then sed -i "s/PLAYER_1 = .*/PLAYER_1 = '$P1'/g" "$SETTINGS_FILE" >&3 2>&4; fi
-if [ -n "$P2" ]; then sed -i "s/PLAYER_2 = .*/PLAYER_2 = '$P2'/g" "$SETTINGS_FILE" >&3 2>&4; fi
-if [ -n "$P3" ]; then sed -i "s/PLAYER_3 = .*/PLAYER_3 = '$P3'/g" "$SETTINGS_FILE" >&3 2>&4; fi
-if [ -n "$P4" ]; then sed -i "s/PLAYER_4 = .*/PLAYER_4 = '$P4'/g" "$SETTINGS_FILE" >&3 2>&4; fi
-if [ -n "$P5" ]; then sed -i "s/PLAYER_5 = .*/PLAYER_5 = '$P5'/g" "$SETTINGS_FILE" >&3 2>&4; fi
-if [ -n "$P6" ]; then sed -i "s/PLAYER_6 = .*/PLAYER_6 = '$P6'/g" "$SETTINGS_FILE" >&3 2>&4; fi
-
-grep -q "TEAM_ALLOWED_IPS" "$SETTINGS_FILE" || echo "TEAM_ALLOWED_IPS = ['127.0.0.1']" >> "$SETTINGS_FILE"
+grep -q "TEAM_ALLOWED_IPS" "$SETTINGS_FILE" || echo "TEAM_ALLOWED_IPS = ['127.0.0.1, $IP_HOST, 10.60.253.253']" >> "$SETTINGS_FILE"
 
 rm rusicata_master/db.sqlite3 || true
 
