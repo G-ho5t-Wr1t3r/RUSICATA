@@ -4,3 +4,10 @@ __pycache__/
 *.pyd
 reports/
 docs/
+*.tar.gz
+.vscode/
+.idea/
+.DS_Store
+*.log
+.env
+*.sqlite3
