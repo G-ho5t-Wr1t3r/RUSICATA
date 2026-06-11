@@ -18,7 +18,8 @@ usage() {
     echo "  -a <IP>       Set allowed IP (default: 10.254.0.1)"
     echo "  -u <user>     Django superuser username (default: root)"
     echo "  -p <pass>     Django superuser password (default: root)"
-    echo "  -d <debug>     Django debug mode !!! INSECURE KEY !!! (default: False)"
+    echo "  --all         Set up INPUT-FORWARD-OUTPUT in IPTABLES to manage all the traffic (default: diabled - only DOCKER-USER)"
+    echo "  -d            Django debug mode !!! INSECURE KEY !!! (default: False)"
     echo "  -v, --verbose Show all commands output"
     echo ""
     exit 1
@@ -28,6 +29,7 @@ usage() {
 DB_USER="root"
 DB_PASS="root"
 IP_HOST="10.254.0.1"
+ALL=false
 DEBUG=false
 
 VERBOSE=false
@@ -40,7 +42,8 @@ while [[ "$#" -gt 0 ]]; do
         -a) IP_HOST="$2"; shift ;;
         -u) DB_USER="$2"; shift ;;
         -p) DB_PASS="$2"; shift ;;
-        -d) DEBUG="$2"; shift ;;
+        --all) ALL=true ;;
+        -d) DEBUG=true ;;
         *) echo -e "${RED}Unknown parameter: $1${RST}"; usage ;;
     esac
     shift
@@ -54,7 +57,7 @@ else
     exec 3>/dev/null 4>/dev/null
 fi
 
-echo "INIZIALIZZAZIONE"
+echo "INIZIALIZZATION"
 
 # software-properties-common è necessario per add-apt-repository
 apt update >&3 2>&4 && apt upgrade -y >&3 2>&4
@@ -76,32 +79,35 @@ source .env/bin/activate
 
 # Controllo: siamo davvero dentro il venv?
 if [[ "$VIRTUAL_ENV" == "" ]]; then
-    echo -e "${RED}ERRORE: Ambiente virtuale non attivato. Il sistema potrebbe bloccare pip.${RST}"
+    echo -e "${RED}ERROR: System environment not activated. The system might block pip.${RST}"
     exit 1
 fi
 
-echo "Installazione dipendenze..."
+echo "Installing dependencies..."
 if pip install -r requirements.txt >&3 2>&4; then
-    echo -e "${GRN}Installazione completata con successo nel venv.${RST}"
+    echo -e "${GRN}Installation completed successfully in the venv.${RST}"
 else
     EXIT_CODE=$?
-    echo -e "${RED}Errore durante pip install (Codice: $EXIT_CODE).${RST}"
+    echo -e "${RED}Error during pip install (Code: $EXIT_CODE).${RST}"
 
     if pip install -r requirements.txt --break-system-packages >&3 2>&4; then
-        echo -e "${GRN}Installazione FORZATA completata con successo nel venv.${RST}"
+        echo -e "${GRN}FORCED installation completed successfully in the venv.${RST}"
     else
         EXIT_CODE=$?
-        echo -e "${RED}Errore durante pip installFORZATO (Codice: $EXIT_CODE).${RST}"
+        echo -e "${RED}Error during FORCED pip install (Code: $EXIT_CODE).${RST}"
         exit 1
     fi
 fi
 
-if [ "$DEBUG" = true ]; then
-    sed -i "s/DEBUG = .*/DEBUG = True/g" "$SETTINGS_FILE" >&3 2>&4
-fi
-
 SETTINGS_FILE=$(find . -name "settings.py" | head -n 1)
 sed -i "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['*']/g" "$SETTINGS_FILE" >&3 2>&4
+
+if [ "$DEBUG" = true ]; then
+
+    echo -e "${YLW}Enabling Django debug mode...${RST}"
+
+    sed -i "s/DEBUG = .*/DEBUG = True/g" "$SETTINGS_FILE" >&3 2>&4
+fi
 
 grep -q "TEAM_ALLOWED_IPS" "$SETTINGS_FILE" || echo "TEAM_ALLOWED_IPS = ['127.0.0.1, $IP_HOST, 10.60.253.253']" >> "$SETTINGS_FILE"
 
@@ -123,49 +129,60 @@ if ! command -v suricata >/dev/null 2>&1; then
     
     apt update >&3 2>&4
     apt install suricata jq -y >&3 2>&4
-    #apt install suricata=7.* jq -y >&3 2>&4 || echo "Errore nell'installazione di Suricata 7"
+    #apt install suricata=7.* jq -y >&3 2>&4 || echo "Error during Suricata 7 installation"
     suricata --build-info >&3 2>&4
 else
-    echo "Suricata è già presente!"
+    echo "Suricata is already installed!"
 fi
 
 if find var/lib/suricata/rules > /dev/null 2>&1; then
-    echo -e "${YLW}Eseguo il backup delle regole esistenti in /var/lib/suricata/rules/suricata.rules.old${RST}"
+    echo -e "${YLW}Executing backup of existing rules in /var/lib/suricata/rules/suricata.rules.old${RST}"
     mv /var/lib/suricata/rules/suricata.rules /var/lib/suricata/rules/suricata.rules.old >&3 2>&4
 else
-    echo "Creazione cartella rules"
+    echo "Creating rules folder"
     mkdir -p /var/lib/suricata/rules >&3 2>&4
 fi
 touch /var/lib/suricata/rules/suricata.rules >&3 2>&4
 
 cp rusicata_master/suricata.yaml /etc/suricata/suricata.yaml >&3 2>&4 || true
 
-echo -e "${YLW}Lancio il test per suricata.yaml${RST}"
+echo -e "${YLW}Launching test for suricata.yaml${RST}"
 suricata -T -c /etc/suricata/suricata.yaml -v >&3 2>&4
 
 echo "Imposto i parametri di IPTABLES..."
-if iptables -I DOCKER-USER -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
-    echo -e "${GRN}Docker ✔${RST}"
-else
-    echo -e "${RED}Docker ✗${RST}"
-fi
 
-if iptables -I FORWARD -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
-    echo -e "${GRN}Forward ✔${RST}"
-else
-    echo -e "${RED}Forward ✗${RST}"
-fi
+if [ "$ALL" = true ]; then
 
-if iptables -I INPUT -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
-    echo -e "${GRN}Input ✔${RST}"
-else
-    echo -e "${RED}Input ✗${RST}"
-fi
+    echo -e "${YLW}Setting up IPTABLES for all traffic (INPUT, FORWARD, OUTPUT)${RST}"
 
-if iptables -I OUTPUT -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
-    echo -e "${GRN}Output ✔${RST}"
+    if iptables -I FORWARD -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
+        echo -e "${GRN}Forward ✔${RST}"
+    else
+        echo -e "${RED}Forward ✗${RST}"
+    fi
+
+    if iptables -I INPUT -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
+        echo -e "${GRN}Input ✔${RST}"
+    else
+        echo -e "${RED}Input ✗${RST}"
+    fi
+
+    if iptables -I OUTPUT -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
+        echo -e "${GRN}Output ✔${RST}"
+    else
+        echo -e "${RED}Output ✗${RST}"
+    fi
+
 else
-    echo -e "${RED}Output ✗${RST}"
+
+    echo -e "${YLW}Setting up IPTABLES only for DOCKER-USER chain${RST}"
+
+    if iptables -I DOCKER-USER -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
+        echo -e "${GRN}Docker ✔${RST}"
+    else
+        echo -e "${RED}Docker ✗${RST}"
+    fi
+
 fi
 
 sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -q 0 -D|' /usr/lib/systemd/system/suricata.service >&3 2>&4
@@ -202,7 +219,7 @@ fi
 nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > full_logs.txt 2>&1 & # Run server, save logs
 echo "Rusicata is up!"
 echo $(ps aux | grep suricata)
-echo "Le regole sono in: /var/lib/suricata/rules/NAME.rules"
+echo "Rules are located in: /var/lib/suricata/rules/NAME.rules"
 
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 echo "Admin panel: http://$LOCAL_IP:8000/admin"

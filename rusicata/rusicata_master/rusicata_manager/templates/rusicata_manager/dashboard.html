@@ -187,6 +187,12 @@
             box-shadow: 0 0 15px var(--accent-glow);
         }
 
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+        }
+
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
 
         /* Grid */
@@ -433,6 +439,15 @@
             background: rgba(239, 68, 68, 0.1);
         }
 
+        /* Activity Log */
+        #activity-log-container div {
+            transition: var(--transition);
+        }
+        #activity-log-container div:hover {
+            background: rgba(255,255,255,0.02);
+            padding-left: 5px;
+        }
+
     </style>
 </head>
 <body>
@@ -459,6 +474,12 @@
                     <div class="pulse"></div>
                     <span id="status-text">Suricata: Active</span>
                 </div>
+                
+                {% if is_superuser %}
+                <button class="btn btn-primary btn-sm" onclick="openAddAnalystModal()" style="margin-left: 1rem;">
+                    <i class="fas fa-user-plus"></i> Add Analyst
+                </button>
+                {% endif %}
             </div>
             
             <div class="header-actions">
@@ -490,41 +511,25 @@
             <!-- Bar Chart -->
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">Top Protocols</h2>
-                    <i class="fas fa-chart-bar text-muted"></i>
+                    <h2 class="card-title">Active Rules / Service</h2>
+                    <i class="fas fa-shield-alt text-muted"></i>
                 </div>
                 <div class="chart-container">
-                    <canvas id="protocolsChart"></canvas>
+                    <canvas id="activeRulesChart"></canvas>
                 </div>
             </div>
 
-            <!-- Config Card -->
-            <div class="card config-card">
+            <!-- Activity Log Card -->
+            <div class="card config-card" style="display: flex; flex-direction: column;">
                 <div class="card-header">
-                    <h2 class="card-title">Suricata Config</h2>
-                    <i class="fas fa-cog text-muted"></i>
+                    <h2 class="card-title">Activity Log</h2>
+                    <i class="fas fa-list-ul text-muted"></i>
                 </div>
-                <div class="config-list">
-                    <div class="config-item">
-                        <span class="config-label">Interfaces</span>
-                        <span class="config-value">{{ config_summary.interfaces|join:", "|default:"eth0" }}</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">Active Rules</span>
-                        <span class="config-value">{{ config_summary.rule_files|length }} Files</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">App-Layer</span>
-                        <span class="config-value">{{ config_summary.app_layer_protos|length }} Protos</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">Run Mode</span>
-                        <span class="config-value">Workers</span>
-                    </div>
-                </div>
-                <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                    {% for proto in config_summary.app_layer_protos|slice:":8" %}
-                    <span style="font-size: 10px; padding: 2px 8px; background: rgba(124, 58, 237, 0.2); border-radius: 8px;">{{ proto }}</span>
+                <div id="activity-log-container" style="flex-grow: 1; overflow-y: auto; font-size: 0.75rem; color: var(--text-muted); max-height: 200px; scrollbar-width: thin;">
+                    {% for log in activity_logs %}
+                    <div style="padding: 4px 0; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ log }}">{{ log }}</div>
+                    {% empty %}
+                    <div style="text-align: center; margin-top: 2rem;">No recent activity.</div>
                     {% endfor %}
                 </div>
             </div>
@@ -534,10 +539,12 @@
         <section class="table-section">
             <div class="section-header">
                 <h2 class="card-title">Managed Services</h2>
+                {% if is_superuser %}
                 <button class="btn btn-primary" onclick="openAddServiceModal()">
                     <i class="fas fa-plus"></i>
                     <span>Add Service</span>
                 </button>
+                {% endif %}
             </div>
             <div class="table-container">
                 <table>
@@ -553,14 +560,29 @@
                     <tbody id="services-table-body">
                         {% for service in services %}
                         <tr>
-                            <td style="font-weight: 600;">{{ service.name }}</td>
+                            <td style="font-weight: 600;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="width: 12px; height: 12px; border-radius: 50%; background-color: {{ service.color|default:'#7c3aed' }}; box-shadow: 0 0 8px {{ service.color|default:'#7c3aed' }}80;"></div>
+                                    {{ service.name }}
+                                </div>
+                            </td>
                             <td><code style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">{{ service.port }}</code></td>
                             <td>{{ service.active_rules }} of {{ service.total_rules }}</td>
                             <td class="text-muted">Just now</td>
                             <td>
-                                <button class="btn" style="padding: 0.4rem 0.8rem;" onclick="openRulesModal('{{ service.id }}', '{{ service.name }}')">
-                                    Manage Rules
-                                </button>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn" style="padding: 0.4rem 0.8rem;" onclick="openRulesModal('{{ service.id }}', '{{ service.name }}')">
+                                        Manage Rules
+                                    </button>
+                                    {% if is_superuser %}
+                                    <button class="action-btn" onclick="openEditServiceModal('{{ service.id }}')" title="Edit Service">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn delete" onclick="confirmDeleteService('{{ service.id }}', '{{ service.name }}')" title="Delete Service">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
@@ -646,7 +668,7 @@
                 <table id="modal-rules-table">
                     <thead>
                         <tr>
-                            <th>Rule Name</th>
+                            <th>Rule Message</th>
                             <th>Status</th>
                             <th>Action</th>
                             <th>Operations</th>
@@ -692,9 +714,19 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Protocol</label>
-                        <input type="text" id="edit-rule-protocol" name="protocol" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Protocol / Method</label>
+                        <!-- For HTTP rules this acts as method, for transport as protocol -->
+                        <input type="text" id="edit-rule-proto-method" name="proto_method" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                     </div>
+                </div>
+
+                <div style="margin-bottom: 1rem;" id="edit-rule-location-container">
+                    <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Location (HTTP only)</label>
+                    <select id="edit-rule-location" name="content_location" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <option value="http_uri">URI</option>
+                        <option value="http_client_body">Body</option>
+                        <option value="http_header">Header</option>
+                    </select>
                 </div>
 
                 <div style="margin-bottom: 1rem;">
@@ -736,7 +768,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Action</label>
-                        <select name="action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="action" id="add-http-action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                             <option value="alert">ALERT</option>
                             <option value="drop">DROP</option>
                             <option value="reject">REJECT</option>
@@ -744,7 +776,7 @@
                     </div>
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Method</label>
-                        <select name="request_method" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="request_method">
                             <option value="GET">GET</option>
                             <option value="POST">POST</option>
                             <option value="PUT">PUT</option>
@@ -756,7 +788,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Location</label>
-                        <select name="content_location" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="content_location">
                             <option value="http_uri">URI</option>
                             <option value="http_client_body">Body</option>
                             <option value="http_header">Header</option>
@@ -795,7 +827,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Action</label>
-                        <select name="action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="action" id="add-transport-action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
                             <option value="alert">ALERT</option>
                             <option value="drop">DROP</option>
                             <option value="reject">REJECT</option>
@@ -803,7 +835,7 @@
                     </div>
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Protocol</label>
-                        <select name="protocol" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="protocol">
                             <option value="tcp">TCP</option>
                             <option value="udp">UDP</option>
                         </select>
@@ -813,7 +845,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Direction</label>
-                        <select name="flow_direction" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="flow_direction">
                             <option value="to_server">To Server</option>
                             <option value="to_client">To Client</option>
                             <option value="any">Any</option>
@@ -841,14 +873,53 @@
         </div>
     </div>
 
-    <!-- Add Service Modal -->
-    <div class="modal-overlay" id="add-service-modal-overlay">
+    <!-- Edit Service Modal -->
+    <div class="modal-overlay" id="edit-service-modal-overlay">
         <div class="modal" style="max-width: 500px;">
             <div class="card-header">
-                <h2 class="card-title">Add New Service</h2>
+                <h2 class="card-title">Edit Service Settings</h2>
+                <button class="action-btn" onclick="closeEditServiceModal()" style="font-size: 1.5rem;">&times;</button>
+            </div>
+            <form id="edit-service-form" style="margin-top: 1.5rem;">
+                {% csrf_token %}
+                <input type="hidden" id="edit-service-id">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Service Name</label>
+                    <input type="text" id="edit-service-name" name="name" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                </div>
+                <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+                    <div style="flex-grow: 1;">
+                        <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Port</label>
+                        <input type="number" id="edit-service-port" name="port" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    </div>
+                    <div style="width: 80px;">
+                        <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Color</label>
+                        <input type="color" id="edit-service-color" name="color" style="width: 100%; height: 42px; padding: 2px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn" onclick="closeEditServiceModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Service Modal -->
+    <div class="modal-overlay" id="add-service-modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="card-header">
+                <h2 class="card-title">Add Service</h2>
                 <button class="action-btn" onclick="closeAddServiceModal()" style="font-size: 1.5rem;">&times;</button>
             </div>
-            <form action="{% url 'add_service' %}" method="POST" style="margin-top: 1.5rem;" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').innerText='Creating...';">
+            
+            <div style="margin-top: 1rem; display: flex; gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                <button class="btn btn-sm btn-primary" id="btn-tab-manual" onclick="switchAddServiceTab('manual')">Manual Add</button>
+                <button class="btn btn-sm" id="btn-tab-bulk" onclick="switchAddServiceTab('bulk')">Bulk from Docker</button>
+            </div>
+
+            <!-- Manual Add Form -->
+            <form id="add-service-manual-form" action="{% url 'add_service' %}" method="POST" style="margin-top: 1.5rem;">
                 {% csrf_token %}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Service Name</label>
@@ -863,6 +934,57 @@
                     <button type="submit" class="btn btn-primary">Create Service</button>
                 </div>
             </form>
+
+            <!-- Bulk Add Form -->
+            <form id="add-service-bulk-form" action="{% url 'bulk_add_services' %}" method="POST" style="margin-top: 1.5rem; display: none;">
+                {% csrf_token %}
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Docker PS Output</label>
+                    <textarea name="docker_ps_output" required placeholder="Paste 'docker ps' output here..." style="width: 100%; height: 200px; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white; font-family: monospace; font-size: 12px;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn" onclick="closeAddServiceModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Bulk Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Analyst Modal -->
+    <div class="modal-overlay" id="add-analyst-modal-overlay">
+        <div class="modal" style="max-width: 500px;">
+            <div class="card-header">
+                <h2 class="card-title">Add Analyst Account</h2>
+                <button class="action-btn" onclick="closeAddAnalystModal()" style="font-size: 1.5rem;">&times;</button>
+            </div>
+            <form id="add-analyst-form" style="margin-top: 1.5rem;">
+                {% csrf_token %}
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Username</label>
+                    <input type="text" name="username" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Password</label>
+                    <input type="password" name="password" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn" onclick="closeAddAnalystModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Analyst</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Global Deletion Confirmation Modal -->
+    <div class="modal-overlay" id="confirm-delete-modal-overlay">
+        <div class="modal" style="max-width: 450px; text-align: center;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger); margin-bottom: 1rem;"></i>
+            <h2 class="card-title" id="confirm-delete-title">Confirm Deletion</h2>
+            <p id="confirm-delete-message" style="margin: 1rem 0; color: var(--text-muted);">Are you sure you want to delete this item? This action cannot be undone.</p>
+            <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem;">
+                <button class="btn" onclick="closeConfirmDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+            </div>
         </div>
     </div>
 
@@ -873,8 +995,30 @@
     </div>
 
     <script>
-        // Global variables for Rule Management
+        // Global variables
         let currentRuleServiceId = null;
+        const isSuperuser = {{ is_superuser|lower }};
+        const isAnalyst = {{ is_analyst|lower }};
+
+        // Deletion confirmation logic
+        let deleteConfirmCallback = null;
+
+        function showConfirmDelete(title, message, callback) {
+            document.getElementById('confirm-delete-title').innerText = title;
+            document.getElementById('confirm-delete-message').innerText = message;
+            deleteConfirmCallback = callback;
+            document.getElementById('confirm-delete-modal-overlay').classList.add('active');
+        }
+
+        function closeConfirmDeleteModal() {
+            document.getElementById('confirm-delete-modal-overlay').classList.remove('active');
+            deleteConfirmCallback = null;
+        }
+
+        document.getElementById('confirm-delete-btn').onclick = function() {
+            if (deleteConfirmCallback) deleteConfirmCallback();
+            closeConfirmDeleteModal();
+        };
 
         // Theme Management
         function toggleTheme() {
@@ -904,7 +1048,6 @@
 
         // Toast System
         function showToast(message) {
-            console.log("Toast shown: " + message);
             const toast = document.getElementById('toast');
             const msgSpan = document.getElementById('toast-message');
             msgSpan.innerText = message;
@@ -915,7 +1058,7 @@
         }
 
         // Charts Initialization
-        let actionsChart, protocolsChart;
+        let actionsChart, activeRulesChart;
         
         function initCharts() {
             const ctxActions = document.getElementById('actionsChart').getContext('2d');
@@ -925,7 +1068,15 @@
                     labels: ['Alerts', 'Drops', 'Allows'],
                     datasets: [{
                         data: [0, 0, 0],
-                        backgroundColor: ['#7c3aed', '#ef4444', '#10b981', '#3b82f6', '#f59e0b'],
+                        backgroundColor: (context) => {
+                            const label = context.chart.data.labels[context.dataIndex];
+                            if (!label) return '#7c3aed';
+                            const l = label.toLowerCase();
+                            if (l.includes('drop') || l.includes('reject')) return '#ef4444';
+                            if (l.includes('alert')) return '#7c3aed';
+                            if (l.includes('allow') || l.includes('pass')) return '#10b981';
+                            return '#3b82f6';
+                        },
                         borderWidth: 0
                     }]
                 },
@@ -939,24 +1090,25 @@
                 }
             });
 
-            const ctxProtocols = document.getElementById('protocolsChart').getContext('2d');
-            protocolsChart = new Chart(ctxProtocols, {
+            const ctxRules = document.getElementById('activeRulesChart').getContext('2d');
+            activeRulesChart = new Chart(ctxRules, {
                 type: 'bar',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Hits',
+                        label: 'Active Rules',
                         data: [],
-                        backgroundColor: '#7c3aed',
+                        backgroundColor: [],
                         borderRadius: 8
                     }]
                 },
                 options: {
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, grid: { color: getBorderColor() }, ticks: { color: getTextColor() } },
-                        x: { grid: { display: false }, ticks: { color: getTextColor() } }
+                        x: { beginAtZero: true, grid: { color: getBorderColor() }, ticks: { color: getTextColor(), precision: 0 } },
+                        y: { grid: { display: false }, ticks: { color: getTextColor() } }
                     },
                     plugins: {
                         legend: { display: false }
@@ -974,17 +1126,17 @@
         }
 
         function updateChartsColors() {
-            if (!actionsChart || !protocolsChart) return;
+            if (!actionsChart || !activeRulesChart) return;
             const color = getTextColor();
             const gridColor = getBorderColor();
             
             actionsChart.options.plugins.legend.labels.color = color;
             actionsChart.update();
             
-            protocolsChart.options.scales.y.grid.color = gridColor;
-            protocolsChart.options.scales.y.ticks.color = color;
-            protocolsChart.options.scales.x.ticks.color = color;
-            protocolsChart.update();
+            activeRulesChart.options.scales.x.grid.color = gridColor;
+            activeRulesChart.options.scales.x.ticks.color = color;
+            activeRulesChart.options.scales.y.ticks.color = color;
+            activeRulesChart.update();
         }
 
         // AJAX Update
@@ -1008,7 +1160,15 @@
                 }
 
                 if (isFullUpdate) {
-                    // Update Actions Dist. Chart (Donut) - use actions stats from telemetry
+                    // Update Activity Logs
+                    const logContainer = document.getElementById('activity-log-container');
+                    if (data.activity_logs && data.activity_logs.length > 0) {
+                        logContainer.innerHTML = data.activity_logs.map(log => 
+                            `<div style="padding: 4px 0; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${log}">${log}</div>`
+                        ).join('');
+                    }
+
+                    // Update Actions Dist. Chart (Donut)
                     const actionLabels = Object.keys(data.stats.actions);
                     const actionValues = Object.values(data.stats.actions);
                     const hasActionData = actionValues.some(v => v > 0);
@@ -1017,25 +1177,20 @@
                         actionsChart.data.labels = actionLabels.map(l => l.toUpperCase());
                         actionsChart.data.datasets[0].data = actionValues;
                     } else {
-                        // Fallback to events per service if no actions but has service hits
-                        const serviceLabels = Object.keys(data.events_per_service);
-                        const serviceValues = Object.values(data.events_per_service);
-                        if (serviceValues.some(v => v > 0)) {
-                            actionsChart.data.labels = serviceLabels;
-                            actionsChart.data.datasets[0].data = serviceValues;
-                        } else {
-                            actionsChart.data.labels = ['No Data'];
-                            actionsChart.data.datasets[0].data = [1];
-                        }
+                        actionsChart.data.labels = ['No Alerts'];
+                        actionsChart.data.datasets[0].data = [1];
                     }
                     actionsChart.update();
 
-                    // Update Protocols Chart
-                    const protoLabels = Object.keys(data.stats.protocols);
-                    const protoValues = Object.values(data.stats.protocols);
-                    protocolsChart.data.labels = protoLabels;
-                    protocolsChart.data.datasets[0].data = protoValues;
-                    protocolsChart.update();
+                    // Update Active Rules Chart
+                    const serviceNames = Object.keys(data.active_rules_per_service);
+                    const ruleCounts = Object.values(data.active_rules_per_service);
+                    const colors = serviceNames.map(name => data.service_colors[name] || '#7c3aed');
+                    
+                    activeRulesChart.data.labels = serviceNames;
+                    activeRulesChart.data.datasets[0].data = ruleCounts;
+                    activeRulesChart.data.datasets[0].backgroundColor = colors;
+                    activeRulesChart.update();
 
                     // Update Alerts Table
                     const alertsBody = document.getElementById('alerts-table-body');
@@ -1085,11 +1240,103 @@
         }
 
         function openAddServiceModal() {
+            if (isAnalyst) {
+                showToast("Permission Denied: Analyst cannot add services.");
+                return;
+            }
             document.getElementById('add-service-modal-overlay').classList.add('active');
         }
 
         function closeAddServiceModal() {
             document.getElementById('add-service-modal-overlay').classList.remove('active');
+        }
+
+        function openAddAnalystModal() {
+            document.getElementById('add-analyst-modal-overlay').classList.add('active');
+        }
+
+        function closeAddAnalystModal() {
+            document.getElementById('add-analyst-modal-overlay').classList.remove('active');
+        }
+
+        function switchAddServiceTab(tab) {
+            const manualForm = document.getElementById('add-service-manual-form');
+            const bulkForm = document.getElementById('add-service-bulk-form');
+            const manualBtn = document.getElementById('btn-tab-manual');
+            const bulkBtn = document.getElementById('btn-tab-bulk');
+
+            if (tab === 'manual') {
+                manualForm.style.display = 'block';
+                bulkForm.style.display = 'none';
+                manualBtn.classList.add('btn-primary');
+                bulkBtn.classList.remove('btn-primary');
+            } else {
+                manualForm.style.display = 'none';
+                bulkForm.style.display = 'block';
+                manualBtn.classList.remove('btn-primary');
+                bulkBtn.classList.add('btn-primary');
+            }
+        }
+
+        function openEditServiceModal(serviceId) {
+            if (isAnalyst) {
+                showToast("Permission Denied: Analyst cannot edit services.");
+                return;
+            }
+            fetch(`/api/service-detail/${serviceId}/`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('edit-service-id').value = data.id;
+                    document.getElementById('edit-service-name').value = data.name;
+                    document.getElementById('edit-service-port').value = data.port;
+                    document.getElementById('edit-service-color').value = data.color || '#7c3aed';
+                    document.getElementById('edit-service-modal-overlay').classList.add('active');
+                });
+        }
+
+        function closeEditServiceModal() {
+            document.getElementById('edit-service-modal-overlay').classList.remove('active');
+        }
+
+        document.getElementById('edit-service-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-service-id').value;
+            const formData = new FormData(this);
+            try {
+                const response = await fetch(`/edit-service/${id}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (response.status === 403) {
+                    const data = await response.json();
+                    showToast(data.message || "Permission Denied");
+                    return;
+                }
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showToast("Service updated successfully");
+                    location.reload();
+                } else {
+                    showToast(data.message || "Failed to update service");
+                }
+            } catch (e) {
+                showToast("Failed to update service");
+            }
+        };
+
+        function confirmDeleteService(serviceId, serviceName) {
+            if (isAnalyst) {
+                showToast("Permission Denied: Analyst cannot delete services.");
+                return;
+            }
+            showConfirmDelete(
+                "Delete Service",
+                `Are you sure you want to delete the service "${serviceName}"? This will also delete all associated rules.`,
+                () => {
+                    window.location.href = `/delete-service/${serviceId}/`;
+                }
+            );
         }
 
         async function loadRulesForModal(serviceId) {
@@ -1102,20 +1349,24 @@
 
                 body.innerHTML = '';
                 data.rules.forEach(rule => {
+                    const operations = isSuperuser ? `
+                        <button class="action-btn" onclick="openEditRuleModal('${rule.type}', '${rule.id}')"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="action-btn delete" onclick="deleteRuleAjax('${rule.type}', '${rule.id}')"><i class="fas fa-trash-alt"></i></button>
+                    ` : '';
+                    
+                    const toggle = isSuperuser ? `
+                        <label class="switch">
+                            <input type="checkbox" ${rule.is_active ? 'checked' : ''} onchange="toggleRuleAjax('${rule.type}', '${rule.id}')">
+                            <span class="slider"></span>
+                        </label>
+                    ` : (rule.is_active ? 'Active' : 'Inactive');
+
                     const row = `
                         <tr id="rule-row-${rule.type}-${rule.id}">
                             <td>${rule.message}</td>
-                            <td>
-                                <label class="switch">
-                                    <input type="checkbox" ${rule.is_active ? 'checked' : ''} onchange="toggleRuleAjax('${rule.type}', '${rule.id}')">
-                                    <span class="slider"></span>
-                                </label>
-                            </td>
+                            <td>${toggle}</td>
                             <td><span class="status-badge ${rule.action.toUpperCase() === 'DROP' ? 'badge-drop' : 'badge-alert'}" style="padding: 2px 8px;">${rule.action}</span></td>
-                            <td>
-                                <button class="action-btn" onclick="openEditRuleModal('${rule.type}', '${rule.id}')"><i class="fas fa-pencil-alt"></i></button>
-                                <button class="action-btn delete" onclick="deleteRuleAjax('${rule.type}', '${rule.id}')"><i class="fas fa-trash-alt"></i></button>
-                            </td>
+                            <td>${operations}</td>
                         </tr>
                     `;
                     body.innerHTML += row;
@@ -1131,6 +1382,11 @@
                 const response = await fetch(`/toggle-rule/${type}/${id}/?format=json`, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
+                if (response.status === 403) {
+                    const data = await response.json();
+                    showToast(data.message || "Permission Denied");
+                    return;
+                }
                 const data = await response.json();
                 if (data.status === 'success') {
                     showToast(`Rule ${data.is_active ? 'enabled' : 'disabled'}`);
@@ -1141,23 +1397,37 @@
         }
 
         async function deleteRuleAjax(type, id) {
-            if (!confirm("Are you sure you want to delete this rule?")) return;
-            try {
-                const response = await fetch(`/delete-rule/${type}/${id}/?format=json`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    document.getElementById(`rule-row-${type}-${id}`).remove();
-                    showToast("Rule deleted");
+            showConfirmDelete(
+                "Delete Rule",
+                "Are you sure you want to delete this rule? This action cannot be undone.",
+                async () => {
+                    try {
+                        const response = await fetch(`/delete-rule/${type}/${id}/?format=json`, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (response.status === 403) {
+                            const data = await response.json();
+                            showToast(data.message || "Permission Denied");
+                            return;
+                        }
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            document.getElementById(`rule-row-${type}-${id}`).remove();
+                            showToast("Rule deleted");
+                        }
+                    } catch (e) {
+                        showToast("Failed to delete rule");
+                    }
                 }
-            } catch (e) {
-                showToast("Failed to delete rule");
-            }
+            );
         }
 
         // Edit Rule Logic
         function openEditRuleModal(type, id) {
+            if (isAnalyst) {
+                showToast("Permission Denied: Analyst cannot edit rules.");
+                return;
+            }
             fetch(`/api/rule-detail/${type}/${id}/`)
                 .then(res => res.json())
                 .then(data => {
@@ -1165,8 +1435,20 @@
                     document.getElementById('edit-rule-type').value = type;
                     document.getElementById('edit-rule-message').value = data.message;
                     document.getElementById('edit-rule-action').value = data.action.toLowerCase();
-                    document.getElementById('edit-rule-protocol').value = data.protocol || '';
+                    
+                    // Populate Proto/Method field
+                    document.getElementById('edit-rule-proto-method').value = (type === 'http') ? data.request_method : data.protocol;
+                    
                     document.getElementById('edit-rule-content').value = data.content || '';
+                    
+                    // Handle Location container for HTTP rules only
+                    const locContainer = document.getElementById('edit-rule-location-container');
+                    if (type === 'http') {
+                        locContainer.style.display = 'block';
+                        document.getElementById('edit-rule-location').value = data.content_location || 'http_uri';
+                    } else {
+                        locContainer.style.display = 'none';
+                    }
                     
                     document.getElementById('edit-rule-modal-overlay').classList.add('active');
                 });
@@ -1188,6 +1470,11 @@
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
+                if (response.status === 403) {
+                    const data = await response.json();
+                    showToast(data.message || "Permission Denied");
+                    return;
+                }
                 const data = await response.json();
                 if (data.status === 'success') {
                     showToast("Rule updated successfully");
@@ -1204,6 +1491,19 @@
             document.getElementById('add-rule-service-id-http').value = currentRuleServiceId;
             document.getElementById('add-rule-service-id-transport').value = currentRuleServiceId;
             document.getElementById('add-rule-modal-overlay').classList.add('active');
+            
+            // Analyst restriction on actions
+            if (isAnalyst) {
+                document.getElementById('add-http-action').value = 'alert';
+                document.getElementById('add-transport-action').value = 'alert';
+                // Lock them
+                document.getElementById('add-http-action').disabled = true;
+                document.getElementById('add-transport-action').disabled = true;
+            } else {
+                document.getElementById('add-http-action').disabled = false;
+                document.getElementById('add-transport-action').disabled = false;
+            }
+
             switchAddRuleTab('http');
         }
 
@@ -1233,13 +1533,23 @@
         // Add Rule AJAX Handlers
         document.getElementById('add-http-rule-form').onsubmit = async function(e) {
             e.preventDefault();
+            const actionSelect = document.getElementById('add-http-action');
+            const originalDisabled = actionSelect.disabled;
+            actionSelect.disabled = false;
             const formData = new FormData(this);
+            actionSelect.disabled = originalDisabled;
+
             try {
                 const response = await fetch(`/add-http-rule/${currentRuleServiceId}/?format=json`, {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
+                if (response.status === 403) {
+                    const data = await response.json();
+                    showToast(data.message || "Permission Denied: Analyst can only create ALERT rules.");
+                    return;
+                }
                 const data = await response.json();
                 if (data.status === 'success') {
                     showToast("HTTP Rule added");
@@ -1253,13 +1563,23 @@
 
         document.getElementById('add-transport-rule-form').onsubmit = async function(e) {
             e.preventDefault();
+            const actionSelect = document.getElementById('add-transport-action');
+            const originalDisabled = actionSelect.disabled;
+            actionSelect.disabled = false;
             const formData = new FormData(this);
+            actionSelect.disabled = originalDisabled;
+
             try {
                 const response = await fetch(`/add-transport-rule/${currentRuleServiceId}/?format=json`, {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
+                if (response.status === 403) {
+                    const data = await response.json();
+                    showToast(data.message || "Permission Denied: Analyst can only create ALERT rules.");
+                    return;
+                }
                 const data = await response.json();
                 if (data.status === 'success') {
                     showToast("Transport Rule added");
@@ -1268,6 +1588,28 @@
                 }
             } catch (e) {
                 showToast("Failed to add rule");
+            }
+        };
+
+        // Add Analyst Handler
+        document.getElementById('add-analyst-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            try {
+                const response = await fetch('/create-analyst/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showToast(data.message);
+                    closeAddAnalystModal();
+                } else {
+                    showToast(data.message || "Failed to create analyst");
+                }
+            } catch (e) {
+                showToast("Failed to create analyst");
             }
         };
 

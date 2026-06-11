@@ -2,7 +2,10 @@ from django.db import models
 from django.core.validators import MaxValueValidator
 from django.core.validators import MinValueValidator
 import os
+import os
+import json
 from django.db.models.signals import pre_delete
+
 from django.dispatch import receiver
 import re
 import yaml
@@ -54,11 +57,19 @@ def rulify(rule_instance) -> str:
     message = rule_instance.message or ""
     content = rule_instance.content or ""
     
+    content_part = ""
+    if content:
+        nocase = "" if rule_instance.case_sensitive else "nocase;"
+        location = ""
+        if hasattr(rule_instance, 'content_location'):
+             location = f"{rule_instance.content_location};"
+        content_part = f' content:"{content}";{location}{nocase}'
+
     if hasattr(rule_instance, 'request_method'): # It's an HttpRule
-        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{message}";flow:to_server,established; content:"{rule_instance.request_method}";http_method; content:"{content}";{rule_instance.content_location};{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
+        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{message}";flow:to_server,established; content:"{rule_instance.request_method}";http_method;{content_part}sid:{rule_instance.sid};rev:1;)\n'
     else: # It's a TransportLevelRule
         flow = f'flow:{rule_instance.flow_direction},established;' if rule_instance.flow_direction != 'any' else ''
-        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{message}";{flow} content:"{content}";{"" if rule_instance.case_sensitive else "nocase;"}sid:{rule_instance.sid};rev:1;)\n'
+        return f'{rule_instance.action} {rule_instance.protocol} any any -> any {rule_instance.service.port} (msg:"{message}";{flow}{content_part}sid:{rule_instance.sid};rev:1;)\n'
 
 def remove_rule(http_rule_instance):
     '''
@@ -98,6 +109,45 @@ def insert_rule(http_rule_instance):
 
 # ==========================================================================================================================
 
+def rewrite_service_rules(service):
+    file_path = f"{RULES_BASE_PATH}{service.name}.rules"
+    # Ensure directory exists
+    if not os.path.exists(RULES_BASE_PATH):
+        os.makedirs(RULES_BASE_PATH, exist_ok=True)
+        
+    with open(file_path, "w") as f:
+        # We need to import HttpRule and TransportLevelRule here or move this function after them
+        # to avoid circular or missing reference if called inside Service.save
+        # Actually, we can use the manager
+        for rule in service.httprule_set.all():
+            if rule.is_active:
+                f.write(rulify(rule))
+        for rule in service.transportlevelrule_set.all():
+            if rule.is_active:
+                f.write(rulify(rule))
+    suricata_hot_reload()
+
+# Define the path for the service colors JSON file
+SERVICE_COLORS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "service_colors.json")
+
+def get_default_color(service_id):
+    palette = [
+        "#7c3aed", "#ef4444", "#10b981", "#3b82f6", "#f59e0b",
+        "#ec4899", "#06b6d4", "#8b5cf6", "#f97316", "#14b8a6"
+    ]
+    return palette[service_id % len(palette)]
+
+def sync_service_colors():
+    colors = {}
+    try:
+        from .models import Service
+        for service in Service.objects.all():
+            colors[str(service.id)] = service.color
+        with open(SERVICE_COLORS_FILE, "w") as f:
+            json.dump(colors, f, indent=4)
+    except Exception:
+        pass
+
 # A service has a port, a name and a list of rules associated
 class Service(models.Model):
     name = models.CharField(max_length=200, unique=True, help_text="Nome del Service")
@@ -105,12 +155,21 @@ class Service(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(65535)],
         help_text="Porta su cui runna (non interna di docker)",
     )
+    color = models.CharField(max_length=7, blank=True, help_text="Hex color code (e.g. #7c3aed)")
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
         is_new = not self.pk
+        
+        # Assign default color if not provided
+        if not self.color:
+            if is_new:
+                self.color = get_default_color(Service.objects.count())
+            else:
+                self.color = get_default_color(self.id)
+
         if is_new:
             # Create a rule file
             file_path = RULES_BASE_PATH + self.name + ".rules"
@@ -125,12 +184,66 @@ class Service(models.Model):
 
             # Dump updated suricata.yaml BEFORE reload
             dump_suricata_config(loaded_config, "suricata.yaml")
+        else:
+            # Check for name or port change
+            old_service = Service.objects.get(pk=self.pk)
+            name_changed = old_service.name != self.name
+            port_changed = old_service.port != self.port
+            
+            if name_changed:
+                # Rename rules file
+                old_path = RULES_BASE_PATH + old_service.name + ".rules"
+                new_path = RULES_BASE_PATH + self.name + ".rules"
+                if os.path.exists(old_path):
+                    os.rename(old_path, new_path)
+                
+                # Update yaml
+                try:
+                    loaded_config = load_suricata_config("suricata.yaml")
+                    old_rule_file = old_service.name + ".rules"
+                    new_rule_file = self.name + ".rules"
+                    if old_rule_file in loaded_config["rule-files"]:
+                        idx = loaded_config["rule-files"].index(old_rule_file)
+                        loaded_config["rule-files"][idx] = new_rule_file
+                        dump_suricata_config(loaded_config, "suricata.yaml")
+                        suricata_deamon_reload()
+                except Exception:
+                    pass
 
         super().save(*args, **kwargs)
+        
+        # Sync to JSON after save
+        sync_service_colors()
         
         if is_new:
             # Restart suricata to load new config (after DB commit)
             suricata_deamon_reload()
+        else:
+            # Check if we need to rewrite rules due to port change
+            rewrite_service_rules(self)
+
+    def delete(self, *args, **kwargs):
+        # Remove from yaml
+        try:
+            loaded_config = load_suricata_config("suricata.yaml")
+            rule_file = self.name + ".rules"
+            if rule_file in loaded_config["rule-files"]:
+                loaded_config["rule-files"].remove(rule_file)
+            dump_suricata_config(loaded_config, "suricata.yaml")
+        except Exception:
+            pass
+        
+        # Delete rules file
+        file_path = RULES_BASE_PATH + self.name + ".rules"
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+            
+        super().delete(*args, **kwargs)
+        sync_service_colors()
+        suricata_deamon_reload()
 
 
 # alert http any any -> any 8000 (msg:"HTTP request for pruppetta on port 8000"; flow:to_server,established; content:"GET"; http_method; content:"pruppetta"; http_uri; sid:1000001; rev:1;)
@@ -332,8 +445,12 @@ class GlobalRule(models.Model):
         super().delete(*args, **kwargs)
 
 def rulify_global(rule):
-    content_part = f'pcre:"/{rule.content}/"' if rule.is_regex else f'content:"{rule.content}"'
-    return f'{rule.action} {rule.protocol} any any -> any any (msg:"{rule.message}"; {content_part}; sid:{rule.sid}; rev:1;)\n'
+    content_part = ""
+    if rule.content:
+        content_part = f'pcre:"/{rule.content}/"' if rule.is_regex else f'content:"{rule.content}"'
+        content_part = f" {content_part};"
+        
+    return f'{rule.action} {rule.protocol} any any -> any any (msg:"{rule.message}";{content_part} sid:{rule.sid}; rev:1;)\n'
 
 GLOBAL_RULES_FILE = f'{RULES_BASE_PATH}global.rules'
 
@@ -346,6 +463,20 @@ def insert_global_rule(rule):
             config['rule-files'].append('global.rules')
             dump_suricata_config(config, 'suricata.yaml')
             suricata_deamon_reload()
+
+    with open(GLOBAL_RULES_FILE, 'a') as f:
+        f.write(rulify_global(rule))
+    suricata_hot_reload()
+
+def remove_global_rule(rule):
+    if not os.path.exists(GLOBAL_RULES_FILE): return
+    with open(GLOBAL_RULES_FILE, 'r') as f:
+        lines = f.readlines()
+    with open(GLOBAL_RULES_FILE, 'w') as f:
+        for line in lines:
+            if f'sid:{rule.sid};' not in line:
+                f.write(line)
+    suricata_hot_reload()
 
     with open(GLOBAL_RULES_FILE, 'a') as f:
         f.write(rulify_global(rule))
