@@ -103,7 +103,7 @@ def dashboard_stats(request):
 
     stats = telemetry.get_stats()
     system_stats = telemetry.get_system_stats()
-    recent_events = telemetry.get_recent_events(n=100) # Read more for better stats
+    recent_events = telemetry.get_recent_events(n=100)
     
     # Aggregations
     services = Service.objects.prefetch_related('httprule_set', 'transportlevelrule_set').all()
@@ -121,19 +121,17 @@ def dashboard_stats(request):
         active_rules_per_service[service.name] = active_http + active_transport
         service_colors[service.name] = service.color
 
-    # Enrich recent events with exact rule actions from DB
     enriched_events = []
     for i, event in enumerate(recent_events):
         sid = event.get('sid')
         dest_port = event.get('dest_port')
         action = event.get('action')
         
-        # Aggregate for chart using all 100 events
         service_name = port_to_service.get(dest_port, 'Other')
         if service_name in events_per_service:
             events_per_service[service_name] += 1
             
-        if i < 20: # Only enrich and send back last 20 for UI table
+        if i < 20: 
             if sid:
                 rule = HttpRule.objects.filter(sid=sid).first() or \
                        TransportLevelRule.objects.filter(sid=sid).first()

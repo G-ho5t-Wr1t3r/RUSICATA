@@ -49,6 +49,21 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+if [ "$DB_USER" = "root" ] && [ "$DB_PASS" = "root" ]; then
+    echo -e "${YLW}WARNING: Using default credentials (root:root)."
+    echo "It's highly recommended to set custom credentials using -u and -p options.${RST}"
+
+    read -p "Continue? (y/N): " choice
+    choice_lower=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
+
+    if [ "$choice_lower" = "y" ]; then
+        echo "Proceeding..."
+    else
+        echo "Interrupting process."
+        exit 0
+    fi
+fi
+
 echo -e "${GRN}Starting with username: $DB_USER, password: $DB_PASS, allowed IP: $IP_HOST${RST}"
 
 if [ "$VERBOSE" = true ]; then

@@ -304,10 +304,9 @@ class HttpRule(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if self.pk:  # Update
+        if self.pk:  
             remove_rule(self)
         else:
-            # Generate SID only for new rules
             service_id = self.service.id
             max_http = HttpRule.objects.filter(service=self.service).aggregate(models.Max('sid'))['sid__max'] or 0
             max_transport = TransportLevelRule.objects.filter(service=self.service).aggregate(models.Max('sid'))['sid__max'] or 0

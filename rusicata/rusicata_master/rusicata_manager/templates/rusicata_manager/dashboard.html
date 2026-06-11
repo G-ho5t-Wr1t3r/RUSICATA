@@ -16,7 +16,7 @@
     
     <style>
         :root {
-            /* Colors */
+            /* Dark Theme Defaults */
             --bg-main: #0b0c10;
             --bg-card: rgba(21, 22, 28, 0.7);
             --accent: #7c3aed;
@@ -28,19 +28,32 @@
             --border: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --card-gradient: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(21, 22, 28, 0.7) 100%);
+            --input-bg: #1a1b23;
+            --modal-bg: #15161c;
+            --option-bg: #15161c;
+            --slider-bg: #374151;
+            --slider-knob: #ffffff;
+            --table-hover: rgba(255, 255, 255, 0.02);
+            --system-info-bg: rgba(0,0,0,0.1);
             
-            /* Transitions */
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         [data-theme='light'] {
             --bg-main: #f9fafb;
-            --bg-card: rgba(255, 255, 255, 0.8);
+            --bg-card: #ffffff;
             --text-main: #111827;
             --text-muted: #4b5563;
-            --border: rgba(0, 0, 0, 0.05);
-            --glass-border: rgba(0, 0, 0, 0.1);
-            --card-gradient: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%);
+            --border: rgba(0, 0, 0, 0.1);
+            --glass-border: rgba(0, 0, 0, 0.05);
+            --card-gradient: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, #ffffff 100%);
+            --input-bg: #f3f4f6;
+            --modal-bg: #ffffff;
+            --option-bg: #ffffff;
+            --slider-bg: #d1d5db;
+            --slider-knob: #ffffff;
+            --table-hover: rgba(0, 0, 0, 0.02);
+            --system-info-bg: rgba(0,0,0,0.05);
         }
 
         * {
@@ -75,7 +88,7 @@
             backdrop-filter: blur(12px);
             border: 1px solid var(--border);
             border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
         }
 
         .logo-area {
@@ -98,7 +111,7 @@
             gap: 1rem;
             font-size: 0.8rem;
             color: var(--text-muted);
-            background: rgba(0,0,0,0.1);
+            background: var(--system-info-bg);
             padding: 0.4rem 1rem;
             border-radius: 12px;
             border: 1px solid var(--border);
@@ -173,7 +186,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(124, 58, 237, 0.05);
         }
 
         .btn-primary {
@@ -214,7 +227,7 @@
 
         .card:hover {
             border-color: var(--glass-border);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
         .card-header {
@@ -227,6 +240,7 @@
         .card-title {
             font-size: 1.125rem;
             font-weight: 600;
+            color: var(--text-main);
         }
 
         .chart-container {
@@ -239,11 +253,23 @@
             padding: 10px;
             border-radius: 8px;
             border: 1px solid var(--border);
-            background-color: rgba(0,0,0,0.3);
+            background-color: var(--input-bg);
             color: var(--text-main);
             font-family: inherit;
             outline: none;
             transition: var(--transition);
+            width: 100%;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            padding-right: 40px;
         }
 
         input:focus, select:focus, textarea:focus {
@@ -252,8 +278,8 @@
         }
 
         select option {
-            background-color: #15161c;
-            color: white;
+            background-color: var(--option-bg);
+            color: var(--text-main);
         }
 
         /* Config Card Special Style */
@@ -284,6 +310,7 @@
         .config-value {
             font-weight: 500;
             font-size: 0.875rem;
+            color: var(--text-main);
         }
 
         /* Tables */
@@ -320,6 +347,7 @@
             color: var(--text-muted);
             letter-spacing: 0.05em;
             border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.02);
         }
 
         td {
@@ -327,6 +355,7 @@
             font-size: 0.875rem;
             border-bottom: 1px solid var(--border);
             transition: var(--transition);
+            color: var(--text-main);
         }
 
         tr:last-child td {
@@ -334,7 +363,7 @@
         }
 
         tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--table-hover);
             transform: translateY(-2px);
         }
 
@@ -358,7 +387,7 @@
         }
 
         .modal {
-            background: #15161c;
+            background: var(--modal-bg);
             border: 1px solid var(--glass-border);
             border-radius: 20px;
             width: 90%;
@@ -367,6 +396,7 @@
             overflow-y: auto;
             padding: 2rem;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            color: var(--text-main);
         }
 
         /* Toggle Switches */
@@ -390,7 +420,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #374151;
+            background-color: var(--slider-bg);
             transition: .4s;
             border-radius: 24px;
         }
@@ -402,7 +432,7 @@
             width: 18px;
             left: 3px;
             bottom: 3px;
-            background-color: white;
+            background-color: var(--slider-knob);
             transition: .4s;
             border-radius: 50%;
         }
@@ -469,10 +499,12 @@
             line-height: 1.4;
             padding: 8px 0 !important;
             border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
         }
         #activity-log-container div:hover {
-            background: rgba(255,255,255,0.02);
+            background: var(--table-hover);
             padding-left: 5px !important;
+            color: var(--text-main);
         }
 
     </style>
@@ -552,9 +584,9 @@
                     <h2 class="card-title">Activity Log</h2>
                     <i class="fas fa-list-ul text-muted"></i>
                 </div>
-                <div id="activity-log-container" style="flex-grow: 1; overflow-y: auto; font-size: 0.75rem; color: var(--text-muted); max-height: 200px; scrollbar-width: thin;">
+                <div id="activity-log-container" style="flex-grow: 1; overflow-y: auto; font-size: 0.75rem; max-height: 200px; scrollbar-width: thin;">
                     {% for log in activity_logs %}
-                    <div style="padding: 4px 0; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ log }}">{{ log }}</div>
+                    <div style="padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ log }}">{{ log }}</div>
                     {% empty %}
                     <div style="text-align: center; margin-top: 2rem;">No recent activity.</div>
                     {% endfor %}
@@ -593,7 +625,7 @@
                                     {{ service.name }}
                                 </div>
                             </td>
-                            <td><code style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">{{ service.port }}</code></td>
+                            <td><code style="background: rgba(124, 58, 237, 0.1); padding: 2px 6px; border-radius: 4px;">{{ service.port }}</code></td>
                             <td>{{ service.active_rules }} of {{ service.total_rules }}</td>
                             <td class="text-muted">Just now</td>
                             <td>
@@ -637,7 +669,7 @@
                 </div>
                 <div style="flex-grow: 1; position: relative;">
                     <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
-                    <input type="text" id="log-search" placeholder="Search logs..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 30px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 10px; color: var(--text-main);">
+                    <input type="text" id="log-search" placeholder="Search logs..." style="padding-left: 30px; border-radius: 10px;">
                 </div>
             </div>
 
@@ -727,13 +759,13 @@
                 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Rule Message</label>
-                    <input type="text" id="edit-rule-message" name="message" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" id="edit-rule-message" name="message">
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Action</label>
-                        <select id="edit-rule-action" name="action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select id="edit-rule-action" name="action">
                             <option value="alert">ALERT</option>
                             <option value="drop">DROP</option>
                             <option value="pass">PASS</option>
@@ -742,14 +774,13 @@
                     </div>
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Protocol / Method</label>
-                        <!-- For HTTP rules this acts as method, for transport as protocol -->
-                        <input type="text" id="edit-rule-proto-method" name="proto_method" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <input type="text" id="edit-rule-proto-method" name="proto_method">
                     </div>
                 </div>
 
                 <div style="margin-bottom: 1rem;" id="edit-rule-location-container">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Location (HTTP only)</label>
-                    <select id="edit-rule-location" name="content_location" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <select id="edit-rule-location" name="content_location">
                         <option value="http_uri">URI</option>
                         <option value="http_client_body">Body</option>
                         <option value="http_header">Header</option>
@@ -758,7 +789,7 @@
 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Content Pattern</label>
-                    <textarea id="edit-rule-content" name="content" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white; min-height: 80px;"></textarea>
+                    <textarea id="edit-rule-content" name="content" style="min-height: 80px;"></textarea>
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
@@ -789,13 +820,13 @@
                 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Message</label>
-                    <input type="text" name="message" placeholder="e.g. Admin access attempt" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="message" placeholder="e.g. Admin access attempt">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Action</label>
-                        <select name="action" id="add-http-action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="action" id="add-http-action">
                             <option value="alert">ALERT</option>
                             <option value="drop">DROP</option>
                             <option value="reject">REJECT</option>
@@ -832,7 +863,7 @@
 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Content Pattern</label>
-                    <input type="text" name="content" placeholder="e.g. /admin" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="content" placeholder="e.g. /admin">
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
@@ -848,13 +879,13 @@
                 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Message</label>
-                    <input type="text" name="message" placeholder="e.g. Suspicious TCP payload" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="message" placeholder="e.g. Suspicious TCP payload">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Action</label>
-                        <select name="action" id="add-transport-action" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <select name="action" id="add-transport-action">
                             <option value="alert">ALERT</option>
                             <option value="drop">DROP</option>
                             <option value="reject">REJECT</option>
@@ -889,7 +920,7 @@
 
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Content Pattern</label>
-                    <input type="text" name="content" placeholder="e.g. suspicious_payload" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="content" placeholder="e.g. suspicious_payload">
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
@@ -912,16 +943,16 @@
                 <input type="hidden" id="edit-service-id">
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Service Name</label>
-                    <input type="text" id="edit-service-name" name="name" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" id="edit-service-name" name="name" required>
                 </div>
                 <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
                     <div style="flex-grow: 1;">
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Port</label>
-                        <input type="number" id="edit-service-port" name="port" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                        <input type="number" id="edit-service-port" name="port" required>
                     </div>
                     <div style="width: 80px;">
                         <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Color</label>
-                        <input type="color" id="edit-service-color" name="color" style="width: 100%; height: 42px; padding: 2px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+                        <input type="color" id="edit-service-color" name="color" style="height: 42px; padding: 2px; cursor: pointer;">
                     </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 1rem;">
@@ -950,11 +981,11 @@
                 {% csrf_token %}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Service Name</label>
-                    <input type="text" name="name" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="name" required>
                 </div>
                 <div style="margin-bottom: 1.5rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Port</label>
-                    <input type="number" name="port" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="number" name="port" required>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 1rem;">
                     <button type="button" class="btn" onclick="closeAddServiceModal()">Cancel</button>
@@ -967,7 +998,7 @@
                 {% csrf_token %}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Docker PS Output</label>
-                    <textarea name="docker_ps_output" required placeholder="Paste 'docker ps' output here..." style="width: 100%; height: 200px; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white; font-family: monospace; font-size: 12px;"></textarea>
+                    <textarea name="docker_ps_output" required placeholder="Paste 'docker ps' output here..." style="height: 200px; font-family: monospace; font-size: 12px;"></textarea>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 1rem;">
                     <button type="button" class="btn" onclick="closeAddServiceModal()">Cancel</button>
@@ -988,11 +1019,11 @@
                 {% csrf_token %}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Username</label>
-                    <input type="text" name="username" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="text" name="username" required>
                 </div>
                 <div style="margin-bottom: 1.5rem;">
                     <label style="display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Password</label>
-                    <input type="password" name="password" required style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: white;">
+                    <input type="password" name="password" required>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 1rem;">
                     <button type="button" class="btn" onclick="closeAddAnalystModal()">Cancel</button>
@@ -1149,7 +1180,7 @@
         }
 
         function getBorderColor() {
-            return document.documentElement.getAttribute('data-theme') === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+            return document.documentElement.getAttribute('data-theme') === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
         }
 
         function updateChartsColors() {
@@ -1191,7 +1222,7 @@
                     const logContainer = document.getElementById('activity-log-container');
                     if (data.activity_logs && data.activity_logs.length > 0) {
                         logContainer.innerHTML = data.activity_logs.map(log => 
-                            `<div style="padding: 4px 0; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${log}">${log}</div>`
+                            `<div title="${log}">${log}</div>`
                         ).join('');
                     }
 
@@ -1462,13 +1493,9 @@
                     document.getElementById('edit-rule-type').value = type;
                     document.getElementById('edit-rule-message').value = data.message;
                     document.getElementById('edit-rule-action').value = data.action.toLowerCase();
-                    
-                    // Populate Proto/Method field
                     document.getElementById('edit-rule-proto-method').value = (type === 'http') ? data.request_method : data.protocol;
-                    
                     document.getElementById('edit-rule-content').value = data.content || '';
                     
-                    // Handle Location container for HTTP rules only
                     const locContainer = document.getElementById('edit-rule-location-container');
                     if (type === 'http') {
                         locContainer.style.display = 'block';
@@ -1519,11 +1546,9 @@
             document.getElementById('add-rule-service-id-transport').value = currentRuleServiceId;
             document.getElementById('add-rule-modal-overlay').classList.add('active');
             
-            // Analyst restriction on actions
             if (isAnalyst) {
                 document.getElementById('add-http-action').value = 'alert';
                 document.getElementById('add-transport-action').value = 'alert';
-                // Lock them
                 document.getElementById('add-http-action').disabled = true;
                 document.getElementById('add-transport-action').disabled = true;
             } else {
@@ -1651,7 +1676,7 @@
                     countdown = 10;
                     await refreshData(true);
                 } else {
-                    await refreshData(false); // Quick update for system info
+                    await refreshData(false);
                 }
                 timerEl.innerText = `Refreshing in ${countdown}s...`;
             }, 1000);
@@ -1667,10 +1692,8 @@
             rows.forEach(row => {
                 const action = row.getAttribute('data-action') || '';
                 const text = row.innerText.toLowerCase();
-                
                 const matchesFilter = currentFilter === 'all' || action === currentFilter;
                 const matchesSearch = text.includes(searchTerm);
-                
                 row.style.display = (matchesFilter && matchesSearch) ? '' : 'none';
             });
         }
@@ -1683,11 +1706,9 @@
                     btn.style.background = 'transparent';
                     btn.style.color = 'var(--text-main)';
                 });
-                
                 filterBtn.classList.add('active');
                 filterBtn.style.background = 'var(--accent)';
                 filterBtn.style.color = 'white';
-                
                 currentFilter = filterBtn.getAttribute('data-filter');
                 filterLogs();
             }

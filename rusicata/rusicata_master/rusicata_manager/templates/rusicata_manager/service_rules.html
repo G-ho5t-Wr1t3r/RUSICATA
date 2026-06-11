@@ -1,39 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Rules - {{ service.name }}</title>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script>
+        const savedTheme = localStorage.getItem('rusicata-theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+
     <style>
         :root {
-            --bg-color: #0b0c10;
-            --card-bg: #15161c;
-            --text-color: #f3f4f6;
-            --primary-color: #7c3aed;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --border-color: rgba(255, 255, 255, 0.05);
+            /* Dark Theme Defaults */
+            --bg-main: #0b0c10;
+            --bg-card: #15161c;
+            --accent: #7c3aed;
+            --accent-glow: rgba(124, 58, 237, 0.2);
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border: rgba(255, 255, 255, 0.05);
+            --input-bg: #1a1b23;
+            --modal-bg: #15161c;
+            --option-bg: #15161c;
+            --slider-bg: #374151;
+            --slider-knob: #ffffff;
+            --table-hover: rgba(255, 255, 255, 0.02);
+            --th-bg: rgba(255, 255, 255, 0.02);
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
-        [data-theme="light"] {
-            --bg-color: #f9fafb;
-            --card-bg: #ffffff;
-            --text-color: #111827;
-            --primary-color: #7c3aed;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --border-color: rgba(0, 0, 0, 0.05);
+        [data-theme='light'] {
+            --bg-main: #f9fafb;
+            --bg-card: #ffffff;
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --border: rgba(0, 0, 0, 0.1);
+            --input-bg: #f3f4f6;
+            --modal-bg: #ffffff;
+            --option-bg: #ffffff;
+            --slider-bg: #d1d5db;
+            --slider-knob: #ffffff;
+            --table-hover: rgba(0, 0, 0, 0.02);
+            --th-bg: rgba(0, 0, 0, 0.02);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg-main);
+            color: var(--text-main);
             margin: 0;
             padding: 20px;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
 
         header {
@@ -42,9 +81,10 @@
             align-items: center;
             margin-bottom: 30px;
             padding: 1rem 1.5rem;
-            background: var(--card-bg);
+            background: var(--bg-card);
             border-radius: 12px;
-            border-bottom: 2px solid var(--primary-color);
+            border-bottom: 2px solid var(--accent);
+            box-shadow: var(--shadow);
         }
 
         .btn {
@@ -59,89 +99,92 @@
             cursor: pointer;
             border: none;
             font-size: 0.9rem;
-            transition: opacity 0.2s, transform 0.2s;
+            transition: var(--transition);
         }
 
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary { background-color: var(--primary-color); }
-        .btn-success { background-color: var(--success-color); }
-        .btn-danger { background-color: var(--danger-color); }
+        .btn-primary { background-color: var(--accent); }
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
         .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
 
         .card {
-            background-color: var(--card-bg);
+            background-color: var(--bg-card);
             border-radius: 12px;
             box-shadow: var(--shadow);
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
         }
+
+        h1, h2, h3 { color: var(--text-main); }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 15px;
         }
 
         th, td {
             text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 14px;
+            border-bottom: 1px solid var(--border);
         }
 
-        th { background-color: rgba(255,255,255,0.02); font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; }
+        th { background-color: var(--th-bg); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
 
         .status-badge {
-            padding: 2px 8px;
+            padding: 3px 10px;
             border-radius: 6px;
             font-size: 0.7rem;
-            font-weight: bold;
+            font-weight: 700;
             text-transform: uppercase;
         }
-        .badge-alert { background: rgba(124, 58, 237, 0.1); color: var(--primary-color); }
-        .badge-drop { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+        .badge-alert { background: rgba(124, 58, 237, 0.1); color: var(--accent); }
+        .badge-drop { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
 
         .form-group {
             margin-bottom: 15px;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
         }
 
-        label { font-weight: 600; font-size: 0.85rem; color: #9ca3af; }
+        label { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
 
-        input, select {
-            padding: 10px;
+        input, select, textarea {
+            padding: 12px;
             border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background-color: rgba(0,0,0,0.3);
-            color: var(--text-color);
+            border: 1px solid var(--border);
+            background-color: var(--input-bg);
+            color: var(--text-main);
             font-family: inherit;
             outline: none;
-            transition: border-color 0.2s;
+            transition: var(--transition);
         }
 
         input:focus, select:focus {
-            border-color: var(--primary-color);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
         }
 
         select option {
-            background-color: #15161c;
-            color: white;
+            background-color: var(--option-bg);
+            color: var(--text-main);
         }
 
         .add-rule-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
         }
 
         /* Toggle Switch UI */
         .switch {
             position: relative;
             display: inline-block;
-            width: 40px;
-            height: 20px;
+            width: 44px;
+            height: 24px;
         }
 
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -150,35 +193,35 @@
             position: absolute;
             cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #374151;
+            background-color: var(--slider-bg);
             transition: .4s;
-            border-radius: 20px;
+            border-radius: 24px;
         }
 
         .slider:before {
             position: absolute;
             content: "";
-            height: 14px; width: 14px;
+            height: 18px; width: 18px;
             left: 3px; bottom: 3px;
-            background-color: white;
+            background-color: var(--slider-knob);
             transition: .4s;
             border-radius: 50%;
         }
 
-        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider { background-color: var(--accent); }
         input:checked + .slider:before { transform: translateX(20px); }
 
         .btn-trash {
             background: none;
             border: none;
-            color: #9ca3af;
+            color: var(--text-muted);
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
             padding: 5px;
             transition: color 0.2s;
         }
 
-        .btn-trash:hover { color: var(--danger-color); }
+        .btn-trash:hover { color: var(--danger); }
 
         /* Modal Styles */
         .modal-overlay {
@@ -194,20 +237,29 @@
         .modal-overlay.active { display: flex; }
 
         .modal {
-            background: #15161c;
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            background: var(--modal-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
             width: 90%;
-            max-width: 400px;
-            padding: 2rem;
+            max-width: 450px;
+            padding: 2.5rem;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            color: var(--text-main);
+        }
+
+        code {
+            background: var(--input-bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: var(--accent);
         }
     </style>
 </head>
 <body>
     <header>
-        <h1><i class="fas fa-list-check" style="color: var(--primary-color);"></i> Rules for {{ service.name }} (Port {{ service.port }})</h1>
+        <h1><i class="fas fa-list-check" style="color: var(--accent);"></i> Rules for {{ service.name }} (Port {{ service.port }})</h1>
         <a href="{% url 'dashboard' %}" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
     </header>
 
@@ -236,11 +288,11 @@
                 <tbody>
                     {% for rule in http_rules %}
                     <tr>
-                        <td><code style="color: var(--primary-color);">{{ rule.sid }}</code></td>
+                        <td><code>{{ rule.sid }}</code></td>
                         <td><span class="status-badge {% if rule.action == 'alert' %}badge-alert{% else %}badge-drop{% endif %}">{{ rule.action|upper }}</span></td>
                         <td><span style="font-weight: 600;">{{ rule.request_method }}</span></td>
-                        <td><code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">{{ rule.content }}</code></td>
-                        <td style="color: #9ca3af; font-size: 0.8rem;">{{ rule.content_location }}</td>
+                        <td><code>{{ rule.content }}</code></td>
+                        <td style="color: var(--text-muted); font-size: 0.8rem;">{{ rule.content_location }}</td>
                         <td>
                             <label class="switch">
                                 <input type="checkbox" {% if rule.is_active %}checked{% endif %} 
@@ -256,14 +308,14 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" style="text-align: center; color: #9ca3af; padding: 2rem;">No HTTP rules found.</td>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No HTTP rules found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <h3 style="margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 25px; color: var(--primary-color);">
+        <h3 style="margin-top: 40px; border-top: 1px solid var(--border); padding-top: 25px; color: var(--accent);">
             <i class="fas fa-plus-circle"></i> Add New HTTP Rule
         </h3>
         <form action="{% url 'add_http_rule' service.id %}" method="post" class="add-rule-grid" onsubmit="return validateAction(this)">
@@ -335,11 +387,11 @@
                 <tbody>
                     {% for rule in transport_rules %}
                     <tr>
-                        <td><code style="color: var(--primary-color);">{{ rule.sid }}</code></td>
+                        <td><code>{{ rule.sid }}</code></td>
                         <td><span class="status-badge {% if rule.action == 'alert' %}badge-alert{% else %}badge-drop{% endif %}">{{ rule.action|upper }}</span></td>
                         <td><span style="font-weight: 600;">{{ rule.protocol|upper }}</span></td>
-                        <td><code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">{{ rule.content }}</code></td>
-                        <td style="color: #9ca3af; font-size: 0.8rem;">{{ rule.flow_direction }}</td>
+                        <td><code>{{ rule.content }}</code></td>
+                        <td style="color: var(--text-muted); font-size: 0.8rem;">{{ rule.flow_direction }}</td>
                         <td>
                             <label class="switch">
                                 <input type="checkbox" {% if rule.is_active %}checked{% endif %}
@@ -355,14 +407,14 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" style="text-align: center; color: #9ca3af; padding: 2rem;">No Transport Level rules found.</td>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No Transport Level rules found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <h3 style="margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 25px; color: var(--primary-color);">
+        <h3 style="margin-top: 40px; border-top: 1px solid var(--border); padding-top: 25px; color: var(--accent);">
             <i class="fas fa-plus-circle"></i> Add New Transport Rule
         </h3>
         <form action="{% url 'add_transport_rule' service.id %}" method="post" class="add-rule-grid" onsubmit="return validateAction(this)">
@@ -417,11 +469,11 @@
     <!-- Native Confirmation Modal -->
     <div id="confirm-modal-overlay" class="modal-overlay">
         <div class="modal">
-            <i id="confirm-icon" class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger-color); margin-bottom: 1rem;"></i>
-            <h2 id="confirm-title" style="margin-top: 0;">Confirm Action</h2>
-            <p id="confirm-message" style="color: #9ca3af; margin-bottom: 2rem;"></p>
+            <i id="confirm-icon" class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger); margin-bottom: 1rem;"></i>
+            <h2 id="confirm-title" style="margin-top: 0; color: var(--text-main);">Confirm Action</h2>
+            <p id="confirm-message" style="color: var(--text-muted); margin: 1.5rem 0 2rem 0; line-height: 1.5;"></p>
             <div style="display: flex; justify-content: center; gap: 1rem;">
-                <button class="btn btn-primary" style="background: #374151;" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn btn-primary" style="background: var(--slider-bg); color: var(--text-main);" onclick="closeConfirmModal()">Cancel</button>
                 <button id="confirm-exec-btn" class="btn btn-danger">Execute</button>
             </div>
         </div>
@@ -444,7 +496,7 @@
             confirmBtn.innerText = btnText;
             confirmBtn.className = 'btn ' + btnClass;
             confirmIcon.className = 'fas ' + icon;
-            confirmIcon.style.color = (btnClass === 'btn-danger' ? 'var(--danger-color)' : 'var(--primary-color)');
+            confirmIcon.style.color = (btnClass === 'btn-danger' ? 'var(--danger)' : 'var(--accent)');
             
             confirmBtn.onclick = () => {
                 callback();
@@ -512,7 +564,6 @@
             );
         }
 
-        // Close modal on overlay click
         window.onclick = (event) => {
             if (event.target == overlay) closeConfirmModal();
         }
