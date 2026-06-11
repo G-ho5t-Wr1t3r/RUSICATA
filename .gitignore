@@ -3,7 +3,7 @@ __pycache__/
 *.pyo
 *.pyd
 reports/
-docs/
+docs/*
 *.tar.gz
 .vscode/
 .idea/
