@@ -547,10 +547,21 @@
                     <i class="fas fa-moon"></i>
                     <span>Dark Mode</span>
                 </button>
+                {% if is_superuser %}
+                <button class="btn" onclick="window.location.href='{% url 'export_backup' %}'">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export Snapshot</span>
+                </button>
+                <button class="btn" onclick="openImportModal()">
+                    <i class="fas fa-file-import"></i>
+                    <span>Import Snapshot</span>
+                </button>
+                {% else %}
                 <button class="btn" onclick="showToast('Coming soon!')">
                     <i class="fas fa-file-export"></i>
                     <span>Export Report</span>
                 </button>
+                {% endif %}
             </div>
         </header>
 
@@ -1033,6 +1044,30 @@
         </div>
     </div>
 
+    <!-- Import Modal -->
+    <div class="modal-overlay" id="import-modal-overlay">
+        <div class="modal" style="max-width: 500px;">
+            <div class="card-header">
+                <h2 class="card-title">Import System Snapshot</h2>
+                <button class="action-btn" onclick="closeImportModal()" style="font-size: 1.5rem;">&times;</button>
+            </div>
+            <p style="margin: 1rem 0; color: var(--text-muted); font-size: 0.875rem;">
+                Select a Rusicata snapshot (.tar.gz) to restore the system state. 
+                <br><strong style="color: var(--danger);">Warning:</strong> This will overwrite the current database and rules.
+            </p>
+            <form id="import-form">
+                {% csrf_token %}
+                <div style="margin-bottom: 1.5rem;">
+                    <input type="file" name="backup_file" accept=".tar.gz" required style="padding: 1rem; border: 2px dashed var(--border); background: rgba(0,0,0,0.1);">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn" onclick="closeImportModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Restore Snapshot</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Global Deletion Confirmation Modal -->
     <div class="modal-overlay" id="confirm-delete-modal-overlay">
         <div class="modal" style="max-width: 450px; text-align: center;">
@@ -1316,6 +1351,36 @@
         function closeAddAnalystModal() {
             document.getElementById('add-analyst-modal-overlay').classList.remove('active');
         }
+
+        function openImportModal() {
+            document.getElementById('import-modal-overlay').classList.add('active');
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal-overlay').classList.remove('active');
+        }
+
+        document.getElementById('import-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            showToast("Restoring system... Please wait.");
+            try {
+                const response = await fetch('{% url "import_backup" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showToast(data.message);
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showToast(data.message || "Import failed");
+                }
+            } catch (e) {
+                showToast("An error occurred during import");
+            }
+        };
 
         function switchAddServiceTab(tab) {
             const manualForm = document.getElementById('add-service-manual-form');

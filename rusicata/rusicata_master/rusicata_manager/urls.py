@@ -19,5 +19,7 @@ urlpatterns = [
     path("bulk-add-services/", views.bulk_add_services, name="bulk_add_services"),
     path("delete-service/<int:service_id>/", views.delete_service, name="delete_service"),
     path("create-analyst/", views.create_analyst, name="create_analyst"),
+    path("export-backup/", views.export_backup, name="export_backup"),
+    path("import-backup/", views.import_backup, name="import_backup"),
     path("old_index/", views.index, name="index"),
 ]

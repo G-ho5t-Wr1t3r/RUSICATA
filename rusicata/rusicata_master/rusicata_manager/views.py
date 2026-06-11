@@ -1,7 +1,10 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 import subprocess
 import os
 import datetime
+import tarfile
+import io
+import shutil
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User, Group
@@ -481,3 +484,98 @@ def bulk_add_services(request):
                 log_activity(request.user, "BULK_ADD_SERVICES", f"Added {count} services from Docker output")
                         
     return redirect('dashboard')
+
+@login_required
+@superuser_only
+def export_backup(request):
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"rusicata_snapshot_{timestamp}.tar.gz"
+    
+    # Create an in-memory tarball
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode='w:gz') as tar:
+        # 1. Database
+        # Base dir is rusicata_master/
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        db_path = os.path.join(base_dir, 'db.sqlite3')
+        if os.path.exists(db_path):
+            tar.add(db_path, arcname='db.sqlite3')
+        
+        # 2. Suricata Config
+        if os.path.exists('/etc/suricata/suricata.yaml'):
+            tar.add('/etc/suricata/suricata.yaml', arcname='suricata.yaml')
+            
+        # 3. Rules
+        rules_dir = '/var/lib/suricata/rules/'
+        if os.path.exists(rules_dir):
+            for f in os.listdir(rules_dir):
+                if f.endswith('.rules'):
+                    tar.add(os.path.join(rules_dir, f), arcname=f'rules/{f}')
+        
+        # 4. Activity Log
+        if os.path.exists(ACTIVITY_LOG_FILE):
+            tar.add(ACTIVITY_LOG_FILE, arcname='activity.log')
+
+    buffer.seek(0)
+    response = HttpResponse(buffer.read(), content_type='application/x-gzip')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    log_activity(request.user, "EXPORT_BACKUP", f"System snapshot exported: {filename}")
+    return response
+
+@login_required
+@superuser_only
+def import_backup(request):
+    if request.method == 'POST' and request.FILES.get('backup_file'):
+        backup_file = request.FILES['backup_file']
+        try:
+            with tarfile.open(fileobj=backup_file, mode='r:gz') as tar:
+                # Validate contents
+                names = tar.getnames()
+                if 'db.sqlite3' not in names:
+                    return JsonResponse({'status': 'error', 'message': 'Invalid backup: db.sqlite3 not found'}, status=400)
+                
+                # Extract to a temp dir
+                temp_dir = '/tmp/rusicata_import'
+                if os.path.exists(temp_dir): 
+                    shutil.rmtree(temp_dir)
+                os.makedirs(temp_dir)
+                tar.extractall(temp_dir)
+                
+                # Restore Database
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                db_path = os.path.join(base_dir, 'db.sqlite3')
+                # Optional: backup current db before overwrite?
+                shutil.copy2(os.path.join(temp_dir, 'db.sqlite3'), db_path)
+                
+                # Restore Config
+                if 'suricata.yaml' in names:
+                    try:
+                        shutil.copy2(os.path.join(temp_dir, 'suricata.yaml'), '/etc/suricata/suricata.yaml')
+                    except Exception as e:
+                        # Might need root permissions if django is not running as root
+                        pass
+                
+                # Restore Rules
+                rules_dir = '/var/lib/suricata/rules/'
+                import_rules_dir = os.path.join(temp_dir, 'rules')
+                if os.path.exists(import_rules_dir):
+                    for f in os.listdir(import_rules_dir):
+                        shutil.copy2(os.path.join(import_rules_dir, f), os.path.join(rules_dir, f))
+                
+                # Restore Activity Log
+                if 'activity.log' in names:
+                    shutil.copy2(os.path.join(temp_dir, 'activity.log'), ACTIVITY_LOG_FILE)
+                
+                # Clean up
+                shutil.rmtree(temp_dir)
+                
+                log_activity(request.user, "IMPORT_BACKUP", "System restored from snapshot")
+                
+                # Restart Suricata
+                subprocess.run(['systemctl', 'restart', 'suricata'], check=False)
+                
+                return JsonResponse({'status': 'success', 'message': 'Backup restored successfully. Suricata restarted.'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Import failed: {str(e)}'}, status=500)
+            
+    return JsonResponse({'status': 'error', 'message': 'No backup file provided'}, status=400)
