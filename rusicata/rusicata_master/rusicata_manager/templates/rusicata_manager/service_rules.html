@@ -114,9 +114,20 @@
             padding: 10px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
-            background-color: rgba(0,0,0,0.2);
+            background-color: rgba(0,0,0,0.3);
             color: var(--text-color);
             font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+        }
+
+        select option {
+            background-color: #15161c;
+            color: white;
         }
 
         .add-rule-grid {

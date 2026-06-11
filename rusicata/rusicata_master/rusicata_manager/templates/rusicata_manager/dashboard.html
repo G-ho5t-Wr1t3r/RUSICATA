@@ -234,6 +234,28 @@
             position: relative;
         }
 
+        /* Form Elements */
+        input, select, textarea {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background-color: rgba(0,0,0,0.3);
+            color: var(--text-main);
+            font-family: inherit;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        select option {
+            background-color: #15161c;
+            color: white;
+        }
+
         /* Config Card Special Style */
         .config-card {
             background: var(--card-gradient);
@@ -439,13 +461,18 @@
             background: rgba(239, 68, 68, 0.1);
         }
 
-        /* Activity Log */
+        /* Activity Log Wrapping */
         #activity-log-container div {
             transition: var(--transition);
+            white-space: normal !important;
+            word-break: break-word;
+            line-height: 1.4;
+            padding: 8px 0 !important;
+            border-bottom: 1px solid var(--border);
         }
         #activity-log-container div:hover {
             background: rgba(255,255,255,0.02);
-            padding-left: 5px;
+            padding-left: 5px !important;
         }
 
     </style>
