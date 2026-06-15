@@ -14,7 +14,7 @@ while getopts "i:hD" opt; do
       echo "Usage: $0 -i path/of/key [-D]"
       echo "Options:"
       echo "  -i    Path to SSH key (required)"
-      echo "  -D    Enable Debug mode (transfers destroy_rusicata.sh & hot_reload.sh)"
+      echo "  -D    Enable Debug mode (transfers destroy_rusicata.sh)"
       echo "  -h    Show this help message"
       exit 0
       ;;
@@ -45,11 +45,8 @@ scp -i "$KEY_PATH" setup.sh root@vm:/opt/setup.sh
 if [ "$DEBUG" = true ]; then
   echo "[DEBUG MODE] Transferring destroy_rusicata via SCP"
   scp -i "$KEY_PATH" destroy_rusicata.sh root@vm:/opt/destroy_rusicata.sh
-
-  echo "[DEBUG MODE] Transferring hot_reload via SCP"
-  scp -i "$KEY_PATH" hot_reload.sh root@vm:/opt/hot_reload.sh
 else
-  echo "Skipping debug scripts (run with -D to transfer destroy_rusicata and hot_reload)"
+  echo "Skipping debug scripts (run with -D to transfer destroy_rusicata)"
 fi
 
 echo "Script execution completed"
