@@ -2,6 +2,10 @@
 
 <center><img src=".assets/logo.jpg" width="700" height="350"></center>
 
+*Language Selection*
+<details>
+  <summary><b>IT</b></summary>
+
 Rusicata è una soluzione avanzata basata su **Django** per la gestione semplificata di **Suricata** in modalità **IPS (Intrusion Prevention System)**. Progettato specificamente per competizioni di tipo Attack & Defense (A/D), Rusicata permette di proteggere i servizi tramite regole dinamiche, monitoraggio in tempo reale e una gestione granulare del traffico HTTP e di trasporto.
 
 ---
@@ -40,7 +44,7 @@ Il progetto è organizzato per separare la logica di gestione web dalla configur
 
 ---
 
-## 3. Scelte di Progettazione del Codice
+## 3. Scelte di Progettazione
 
 ### Integrazione Django-Sistema
 A differenza di un'app web standard, Rusicata interagisce direttamente con il sistema operativo:
@@ -145,3 +149,163 @@ suricatasc -c reload-rules
 ### Problemi Noti
 *   **Loopback Testing**: Iptables non processa il traffico da `localhost` a `localhost` nello stesso modo del traffico esterno; i test di `drop` potrebbero fallire se eseguiti localmente.
 *   **YAML Syntax**: Suricata è estremamente sensibile alla formattazione del file `suricata.yaml`. Errori di indentazione impediranno l'avvio del servizio.
+
+## License
+Questo progetto è concesso in licenza ai sensi della [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+Ciò significa che sei libero di condividere e modificare il materiale, a condizione che tu mi attribuisca il merito, non lo utilizzi per scopi commerciali e distribuisca eventuali versioni modificate sotto la stessa licenza.
+
+</details>
+
+
+<details>
+  <summary><b>EN</b></summary>
+
+Rusicata is an advanced **Django**-based solution for simplified management of **Suricata** in **IPS (Intrusion Prevention System)** mode. Designed specifically for Attack & Defense (A/D) competitions, Rusicata allows you to protect services through dynamic rules, real-time monitoring, and granular management of HTTP and transport traffic.
+
+---
+
+## 1. Introduction to Suricata IPS
+
+Suricata is a high-performance network security monitoring engine (IDS/IPS). In IPS mode, Suricata does not merely detect threats but can **actively intervene** (drop/reject) to block malicious traffic.
+
+### How Rules Work
+Suricata rules follow a specific syntax consisting of:
+`action protocol source_port -> destination destination_port (options)`
+
+**Examples of rules managed by Rusicata:**
+
+1.  **HTTP Filter (URI Match):**
+    `drop http any any -> any 80 (msg:“Blocking SQLi attack”; flow:to_server,established; content:‘GET’; http_method; content:“UNION SELECT”; http_uri; sid:100001; rev:1;)`
+2.  **Transport Filter (TCP):**
+    `alert tcp any any -> any 4444 (msg:“Suspicious traffic detected on port 4444”; flow:to_server,established; sid:100002; rev:1;)`
+3.  **Global Filter (ICMP):**
+    `reject icmp any any -> any any (msg:“Ping disabled”; sid:2000001; rev:1;)`
+
+---
+
+## 2. Repository Structure
+
+The project is organized to separate the web management logic from the system configuration:
+
+*   **`rusicata_master/`**: Core of the Django project.
+    *   **`rusicata/`**: Global configurations (`settings.py`, `urls.py`).
+    *   **`rusicata_manager/`**: Main application. Contains the models (`models.py`), the dashboard views, and the logic for interacting with Suricata.
+    *   **`suricata.yaml`**: Suricata configuration template optimized for Rusicata.
+*   **`init.sh`**: Local script for packaging and transferring the project to the Game VM.
+*   **`setup.sh`**: Remote script for installing dependencies and performing a full deployment.
+*   **`destroy_rusicata.sh`**: Script for a full system rollback (removal of Suricata, iptables rules, and data).
+*   **`.assets/`**: Graphic resources for the documentation.
+
+---
+
+## 3. Design Choices
+
+### Django-System Integration
+Unlike a standard web app, Rusicata interacts directly with the operating system:
+*   **Rule File Management**: Each `Service` created in the database generates a physical file at `/var/lib/suricata/rules/{service_name}.rules`.
+*   **Hot-Reload**: To avoid service interruption, Rusicata uses `SIGUSR2` signals to instruct Suricata to reload the rules without restarting the daemon. A full restart (`systemctl restart`) is performed only when the file structure is modified (e.g., adding a new service).
+*   **SID Management**: Rule IDs (SIDs) are automatically generated using an offset based on the service ID (e.g., `Service ID * 100000 + increment`) to ensure uniqueness.
+
+### Asynchronous Logic
+Heavy operations such as restarting the Suricata daemon are handled via separate threads (`threading.Thread`) to ensure that the web interface remains responsive during maintenance operations.
+
+---
+
+## 4. Automation and Scripts
+
+### 4.1 `init.sh` (Local Management)
+Automates the transfer of files to the destination VM.
+*   **Compression**: Creates a tarball named `rusicata.tar.gz`, excluding unnecessary files (`env`, `__pycache__`, `.git`).
+*   **Transfer**: Sends the tarball and the `setup.sh` script via SCP.
+*   **Debug Mode**: If run with `-D`, it also transfers the maintenance scripts (`destroy_rusicata.sh`).
+
+### 4.2 `setup.sh` (Deployment)
+Performs the complete setup on the VM:
+1.  **Dependencies**: Installs `python3-venv`, `suricata`, `jq`, and `software-properties-common`.
+2.  **Python Environment**: Creates a virtual environment and installs the requirements.
+3.  **Django Setup**: Configures the SQLite database, applies migrations, and creates the superuser (default `root:root`).
+4.  **Suricata Config**: Configure the daemon as a system service in IPS mode (`-q 0`).
+5.  **Networking**: Inject the necessary IPTABLES rules to route traffic to the Suricata queue.
+
+### 4.3 `destroy_suricata.sh` (Purge)
+Restores the machine to its initial state:
+*   Stops Django and Suricata.
+*   Completely removes the Suricata packages and related configurations in `/etc/suricata`.
+*   **Cleans up IPTABLES**: Surgically removes the rules that jump to NFQUEUE.
+*   Deletes the `/opt/rusicata` directory and the database.
+
+---
+
+## 5. Networking and IPS Configuration (NFQUEUE)
+
+Suricata in IPS mode acts as a “filter” between the network interfaces and the applications.
+
+### Choosing IPTABLES Chains
+Traffic is sent to Suricata via the `NFQUEUE 0` queue. The configuration depends on the type of traffic to be inspected:
+
+*   **Standard Mode (`DOCKER-USER`)**: Inspects only traffic directed to Docker containers. This is the most performant and secure choice in CTF contexts where services are containerized.
+*   **Full Mode (`--all`)**: Involves the `INPUT`, `FORWARD`, and `OUTPUT` chains. It inspects all traffic on the machine, including SSH access and system communications.
+
+**Note on Docker’s DNAT:**
+Docker applies NAT in the `PREROUTING` chain. When a packet reaches the `FORWARD` (or `DOCKER-USER`) chain, the destination port has already been mapped to the container’s internal port. **Rusicata rules must therefore be based on the actual port on which the application is running inside the container.**
+
+---
+
+## 6. Manual Setup (Step-by-Step)
+
+If you want to install Rusicata without the automation scripts:
+
+### Step 1: System Preparation
+```bash
+sudo apt update && sudo apt install -y python3-venv suricata jq
+```
+
+### Step 2: Django Configuration
+1.  Extract the code to `/opt/rusicata`.
+2.  Create the venv: `python3 -m venv .env && source .env/bin/activate`.
+3.  Install dependencies: `pip install -r requirements.txt`.
+4.  Configure the database:
+    ```bash
+    python3 rusicata_master/manage.py migrate
+    python3 rusicata_master/manage.py createsuperuser
+    ```
+
+### Step 3: Suricata Configuration
+1.  Copy `rusicata_master/suricata.yaml` to `/etc/suricata/suricata.yaml`.
+2.  Edit the systemd service (`/usr/lib/systemd/system/suricata.service`) by setting:
+    `ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -q 0 -D`
+3.  Reload and restart: `systemctl daemon-reload && systemctl restart suricata`.
+
+### Step 4: IPTABLES
+Configure the redirection:
+```bash
+iptables -I DOCKER-USER -j NFQUEUE --queue-num 0 --queue-bypass
+```
+
+---
+
+## 7. Operational Notes and Troubleshooting
+
+### Useful Commands
+*   **Event Monitoring**: 
+```
+tail -f /var/log/suricata/eve.json | jq
+```
+*   **Configuration Check**: 
+```
+suricata -T -c /etc/suricata/suricata.yaml
+```
+*   **Rule Status** (requires an active Unix socket):
+```
+suricatasc -c reload-rules
+```
+
+### Known Issues
+*   **Loopback Testing**: Iptables does not process traffic from `localhost` to `localhost` in the same way as external traffic; `drop` tests may fail when run locally.
+*   **YAML Syntax**: Suricata is extremely sensitive to the formatting of the `suricata.yaml` file. Indentation errors will prevent the service from starting.
+
+## License
+This project is licensed under the [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+This means you are free to share and modify the material, provided that you give me credit, do not use it for commercial purposes, and distribute any modified versions under the same license.
+
+</details>
