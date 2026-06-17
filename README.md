@@ -150,7 +150,7 @@ suricatasc -c reload-rules
 *   **Loopback Testing**: Iptables non processa il traffico da `localhost` a `localhost` nello stesso modo del traffico esterno; i test di `drop` potrebbero fallire se eseguiti localmente.
 *   **YAML Syntax**: Suricata è estremamente sensibile alla formattazione del file `suricata.yaml`. Errori di indentazione impediranno l'avvio del servizio.
 
-## License
+## Licenza
 Questo progetto è concesso in licenza ai sensi della [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 Ciò significa che sei libero di condividere e modificare il materiale, a condizione che tu mi attribuisca il merito, non lo utilizzi per scopi commerciali e distribuisca eventuali versioni modificate sotto la stessa licenza.
 
