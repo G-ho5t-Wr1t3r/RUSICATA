@@ -159,6 +159,7 @@ Ciò significa che sei libero di condividere e modificare il materiale, a condiz
 
 <details open>
   <summary><b>EN</b></summary>
+  
 ## Overview
 
 Rusicata is an advanced **Django**-based solution for simplified management of **Suricata** in **IPS (Intrusion Prevention System)** mode. Designed specifically for Attack & Defense (A/D) competitions, Rusicata allows you to protect services through dynamic rules, real-time monitoring, and granular management of HTTP and transport traffic.
