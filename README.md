@@ -2,7 +2,6 @@
 
 <center><img src=".assets/logo.jpg" width="700" height="350"></center>
 
-*Language Selection*
 <details>
   <summary><b>IT</b></summary>
 
@@ -156,10 +155,6 @@ Ciò significa che sei libero di condividere e modificare il materiale, a condiz
 
 </details>
 
-
-<details>
-  <summary><b>EN</b></summary>
-
 Rusicata is an advanced **Django**-based solution for simplified management of **Suricata** in **IPS (Intrusion Prevention System)** mode. Designed specifically for Attack & Defense (A/D) competitions, Rusicata allows you to protect services through dynamic rules, real-time monitoring, and granular management of HTTP and transport traffic.
 
 ---
@@ -307,5 +302,3 @@ suricatasc -c reload-rules
 ## License
 This project is licensed under the [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 This means you are free to share and modify the material, provided that you give me credit, do not use it for commercial purposes, and distribute any modified versions under the same license.
-
-</details>
