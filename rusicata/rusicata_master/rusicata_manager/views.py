@@ -15,6 +15,22 @@ from .models import Service, HttpRule, TransportLevelRule, load_suricata_config
 
 ACTIVITY_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'activity.log')
 
+# Suricata records the per-event verdict in eve.json at the time the event fires
+# ("allowed" for alert rules, "blocked" for drop/reject rules). eve.json is
+# append-only, so this verdict is immutable: past events keep what they had when
+# they fired, and only new events reflect a later rule change. We map it to the
+# two-state label the dashboard badges/filters already use (ALERT / DROP) instead
+# of re-deriving the action from the live rule (which rewrote the whole history).
+ACTION_DISPLAY = {
+    'allowed': 'ALERT',
+    'blocked': 'DROP',
+}
+
+def display_action(raw_action):
+    if not raw_action:
+        return 'ALERT'
+    return ACTION_DISPLAY.get(raw_action.lower(), raw_action.upper())
+
 def is_analyst(user):
     return user.groups.filter(name='Analyst').exists()
 
@@ -126,22 +142,14 @@ def dashboard_stats(request):
 
     enriched_events = []
     for i, event in enumerate(recent_events):
-        sid = event.get('sid')
         dest_port = event.get('dest_port')
-        action = event.get('action')
-        
+
         service_name = port_to_service.get(dest_port, 'Other')
         if service_name in events_per_service:
             events_per_service[service_name] += 1
-            
-        if i < 20: 
-            if sid:
-                rule = HttpRule.objects.filter(sid=sid).first() or \
-                       TransportLevelRule.objects.filter(sid=sid).first()
-                if rule:
-                    action = rule.action.upper()
-            
-            event['action'] = action
+
+        if i < 20:
+            event['action'] = display_action(event.get('action'))
             enriched_events.append(event)
         
     return JsonResponse({
@@ -168,8 +176,10 @@ def dashboard(request):
 
     stats = telemetry.get_stats()
     recent_events = telemetry.get_recent_events(n=20)
+    for event in recent_events:
+        event['action'] = display_action(event.get('action'))
     services = Service.objects.prefetch_related('httprule_set', 'transportlevelrule_set').all()
-    
+
     for service in services:
         total_http = service.httprule_set.count()
         active_http = service.httprule_set.filter(is_active=True).count()
@@ -544,7 +554,6 @@ def import_backup(request):
                 # Restore Database
                 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 db_path = os.path.join(base_dir, 'db.sqlite3')
-                # Optional: backup current db before overwrite?
                 shutil.copy2(os.path.join(temp_dir, 'db.sqlite3'), db_path)
                 
                 # Restore Config
@@ -552,7 +561,6 @@ def import_backup(request):
                     try:
                         shutil.copy2(os.path.join(temp_dir, 'suricata.yaml'), '/etc/suricata/suricata.yaml')
                     except Exception as e:
-                        # Might need root permissions if django is not running as root
                         pass
                 
                 # Restore Rules

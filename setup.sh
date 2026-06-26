@@ -15,9 +15,10 @@ usage() {
     echo -e "${YLW}Usage: $0 [-p1 IP] ... [-p6 IP] [-u USER] [-p PASS] [-v]${RST}"
     echo "Options:"
     echo "  -h, --help    Show this help message"
-    echo "  -a <IP>       Set allowed IP (default: 10.254.0.1)"
-    echo "  -u <user>     Django superuser username (default: root)"
-    echo "  -p <pass>     Django superuser password (default: root)"
+    echo "  -a  <IP>      Set allowed IP (default: 10.254.0.1)"
+    echo "  -u  <user>    Django superuser username (default: root)"
+    echo "  -pw <pass>    Django superuser password (default: root)"
+    echo "  -p  <port>    Django exposed port (default: 8000)"
     echo "  --all         Set up INPUT-FORWARD-OUTPUT in IPTABLES to manage all the traffic (default: diabled - only DOCKER-USER)"
     echo "  -d            Django debug mode !!! INSECURE KEY !!! (default: False)"
     echo "  -v, --verbose Show all commands output"
@@ -29,6 +30,7 @@ usage() {
 DB_USER="root"
 DB_PASS="root"
 IP_HOST="10.254.0.1"
+PORT="8000"
 ALL=false
 DEBUG=false
 
@@ -41,7 +43,8 @@ while [[ "$#" -gt 0 ]]; do
         -v|--verbose) VERBOSE=true; PARAM_PASSED=true ;;
         -a) IP_HOST="$2"; shift ;;
         -u) DB_USER="$2"; shift ;;
-        -p) DB_PASS="$2"; shift ;;
+        -pw) DB_PASS="$2"; shift ;;
+        -p) PORT="$2"; shift ;;
         --all) ALL=true ;;
         -d) DEBUG=true ;;
         *) echo -e "${RED}Unknown parameter: $1${RST}"; usage ;;
@@ -64,7 +67,7 @@ if [ "$DB_USER" = "root" ] && [ "$DB_PASS" = "root" ]; then
     fi
 fi
 
-echo -e "${GRN}Starting with username: $DB_USER, password: $DB_PASS, allowed IP: $IP_HOST${RST}"
+echo -e "${GRN}Starting with username: $DB_USER, password: $DB_PASS, allowed IP: $IP_HOST, on port: $PORT${RST}"
 
 if [ "$VERBOSE" = true ]; then
     exec 3>&1 4>&2
@@ -195,7 +198,7 @@ else
     if iptables -I DOCKER-USER -j NFQUEUE --queue-num 0 --queue-bypass >&3 2>&4; then
         echo -e "${GRN}Docker ✔${RST}"
     else
-        echo -e "${RED}Docker ✗${RST}"
+        echo -e "${RED}Docker ✗${RST}"root
     fi
 
 fi
@@ -230,12 +233,11 @@ else
     echo "Failed to start daemon!"
 fi
 
-#nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > /dev/null 2>&1 &
-nohup python3 rusicata_master/manage.py runserver 0.0.0.0:8000 > full_logs.txt 2>&1 & # Run server, save logs
+nohup python3 rusicata_master/manage.py runserver 0.0.0.0:$PORT > full_logs.txt 2>&1 & 
 echo "Rusicata is up!"
 echo $(ps aux | grep suricata)
 echo "Rules are located in: /var/lib/suricata/rules/NAME.rules"
 
 LOCAL_IP=$(hostname -I | awk '{print $1}')
-echo "Admin panel: http://$LOCAL_IP:8000/admin"
-echo "Base: http://$LOCAL_IP:8000/"
+echo "Admin panel: http://$LOCAL_IP:$PORT/admin"
+echo "Base: http://$LOCAL_IP:$PORT/"

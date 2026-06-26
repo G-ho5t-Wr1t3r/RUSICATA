@@ -62,6 +62,10 @@ Operazioni pesanti come il riavvio del demone Suricata sono gestite tramite thre
 
 ### 4.1 `init.sh` (Local Management)
 Automatizza il trasferimento dei file verso la VM di destinazione.
+
+> ATTENZIONE!
+> Per far funzionare lo script: aggiungere "<IP> vm" nel file /etc/hosts
+
 *   **Compressione**: Crea un tarball `rusicata.tar.gz` escludendo file non necessari (`env`, `__pycache__`, `.git`).
 *   **Trasferimento**: Invia via SCP il tarball e lo script `setup.sh`.
 *   **Debug Mode**: Se avviato con `-D`, trasferisce anche gli script di manutenzione (`destroy_rusicata.sh`).
@@ -214,6 +218,9 @@ Heavy operations such as restarting the Suricata daemon are handled via separate
 ---
 
 ## 4. Automation and Scripts
+
+> ATTENTION!
+> Works without errors if you add "<IP> vm" in /etc/hosts
 
 ### 4.1 `init.sh` (Local Management)
 Automates the transfer of files to the destination VM.
